@@ -247,7 +247,7 @@ void TransactionBase::streamRLP(RLPStream& _s, IncludeSignature _sig, bool _forE
 {
     if (m_type == NullTransaction)
         return;
-	int item_num = !_sig ? 6 : (!m_sign_vrs.empty()) ? 8 : 9;
+	int item_num = _sig ? (m_sign_vrs.empty() ? 9 : 8) : (_forEip155hash ? 9: 6) ;
 	//_s.appendList((_sig || _forEip155hash ? 3 : 0) + 6);
 	_s.appendList(item_num);
     _s << m_nonce << m_gasPrice << m_gas;
@@ -257,7 +257,7 @@ void TransactionBase::streamRLP(RLPStream& _s, IncludeSignature _sig, bool _forE
         _s << "";
 	_s << m_value << m_data;
 
-    if(_sig == WithSignature){
+    if(_sig){
 		if(!m_sign_vrs.empty()){
 		_s << m_sender;
 		_s << streamRLPSign();
@@ -278,9 +278,6 @@ void TransactionBase::streamRLP(RLPStream& _s, IncludeSignature _sig, bool _forE
 	else if(_forEip155hash)
 		_s << m_chainId << 0 << 0;
 	//testlog << m_chainId <<  " " << m_vrs->r<<  " " << m_vrs->r;
-
-    
-
 
    /* if (_sig)
     {
@@ -316,7 +313,7 @@ dev::bytes dev::brc::TransactionBase::streamRLPSign() const{
 		_b << (u256)_vrs.second->r << (u256)_vrs.second->s;
 
 		RLP _r(_b.out());
-		testlog << BrcYellow " sign:" <<_r[0].convert<Public>(RLP::LaissezFaire)<< " | "<<  _r[1].toInt<int>() << " | " << _r[2].toInt<u256>() << " | " << _r[3].toInt<u256>() << BrcReset;
+		//testlog << BrcYellow " sign:" <<_r[0].convert<Public>(RLP::LaissezFaire)<< " | "<<  _r[1].toInt<int>() << " | " << _r[2].toInt<u256>() << " | " << _r[3].toInt<u256>() << BrcReset;
 		_vbs.push_back(_b.out());
 	}
 	_s.appendVector<bytes>(_vbs);
