@@ -39,7 +39,9 @@ State::State(State const &_s)
           m_unchangedCacheEntries(_s.m_unchangedCacheEntries),
           m_nonExistingAccountsCache(_s.m_nonExistingAccountsCache),
           m_touched(_s.m_touched),
-          m_accountStartNonce(_s.m_accountStartNonce) {}
+          m_accountStartNonce(_s.m_accountStartNonce) {
+	m_timestamp = _s.m_timestamp;
+}
 
 OverlayDB State::openDB(fs::path const &_basePath, h256 const &_genesisHash, WithExisting _we) {
     fs::path path = _basePath.empty() ? db::databasePath() : _basePath;
@@ -99,7 +101,7 @@ void State::populateFrom(AccountMap const &_map) {
     if (it != m_cache.end())
         a = it->second;
 	cerror << "State::populateFrom ";
-    brc::commit(_map, m_state);
+    brc::commit(_map, m_state, timestamp());
     commit(State::CommitBehaviour::KeepEmptyAccounts);
 }
 
@@ -133,6 +135,7 @@ State &State::operator=(State const &_s) {
     m_nonExistingAccountsCache = _s.m_nonExistingAccountsCache;
     m_touched = _s.m_touched;
     m_accountStartNonce = _s.m_accountStartNonce;
+	m_timestamp = _s.m_timestamp;
     return *this;
 }
 
@@ -189,7 +192,8 @@ Account *State::account(Address const &_addr) {
     i.first->second.setVoteDate(_vote);
 	i.first->second.setBlockReward(_blockReward);
 
-	if(state.itemCount() >= 13){
+	//testlog << BrcYellow << "account time:" << timestamp() << BrcReset;
+	if(timestamp() > FORKSIGNSTIME && state.itemCount() >= 13){
 		const bytes _control_account = state[12].toBytes();
 		RLP _rlp_control_account(_control_account);
 		num = _rlp_control_account[0].toInt<size_t>();
@@ -229,7 +233,7 @@ void State::clearCacheIfTooLarge() const {
 void State::commit(CommitBehaviour _commitBehaviour) {
     if (_commitBehaviour == CommitBehaviour::RemoveEmptyAccounts)
         removeEmptyAccounts();
-    m_touched += dev::brc::commit(m_cache, m_state);
+    m_touched += dev::brc::commit(m_cache, m_state, timestamp());
     m_changeLog.clear();
     m_cache.clear();
     m_unchangedCacheEntries.clear();
@@ -1845,14 +1849,15 @@ State &dev::brc::createIntermediateState(
 }
 
 template<class DB>
-AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB> &_state) {
+AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB> &_state, uint64_t _time /*= FORKSIGNSTIME*/) {
     AddressHash ret;
     for (auto const &i : _cache)
         if (i.second.isDirty()) {
             if (!i.second.isAlive())
                 _state.remove(i.first);
             else {
-                RLPStream s(12);
+                RLPStream s;
+				s.appendList(_time > FORKSIGNSTIME ? 13 : 12);
                 s << i.second.nonce() << i.second.balance();
                 if (i.second.storageOverlay().empty()) {
                     assert(i.second.baseRoot());
@@ -1905,11 +1910,12 @@ AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB>
 					s << _rlp.out();
 				}
                 // control_account
+				//testlog << BrcYellow << "commit time:" << _time << BrcReset;
 				{
-					size_t _num = i.second.controlAccounts().size();
-                    if(_num >0){
-					    s.appendList(1);
+                    if(_time > FORKSIGNSTIME){
+					    //s.appendList(1);
 					    RLPStream _rlp;
+						size_t _num = i.second.controlAccounts().size();
 					    _rlp.appendList(_num + 1);
 					    _rlp << _num;
 					    for(auto it : i.second.controlAccounts()){
@@ -1928,7 +1934,7 @@ AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB>
 
 
 template AddressHash dev::brc::commit<OverlayDB>(
-        AccountMap const &_cache, SecureTrieDB<Address, OverlayDB> &_state);
+        AccountMap const &_cache, SecureTrieDB<Address, OverlayDB> &_state, uint64_t _time = FORKSIGNSTIME);
 
 template AddressHash dev::brc::commit<StateCacheDB>(
-        AccountMap const &_cache, SecureTrieDB<Address, StateCacheDB> &_state);
+        AccountMap const &_cache, SecureTrieDB<Address, StateCacheDB> &_state, uint64_t _time =FORKSIGNSTIME );
