@@ -1852,7 +1852,7 @@ AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB>
             if (!i.second.isAlive())
                 _state.remove(i.first);
             else {
-                RLPStream s(13);
+                RLPStream s(12);
                 s << i.second.nonce() << i.second.balance();
                 if (i.second.storageOverlay().empty()) {
                     assert(i.second.baseRoot());
@@ -1905,15 +1905,19 @@ AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB>
 					s << _rlp.out();
 				}
                 // control_account
-				{ 
-					RLPStream _rlp;
+				{
 					size_t _num = i.second.controlAccounts().size();
-					_rlp.appendList(_num + 1);
-					_rlp << _num;
-					for(auto it : i.second.controlAccounts()){
-						_rlp.append<Public, bytes>(std::make_pair(it.first, it.second.streamRLP()));
+                    if(_num >0){
+					    s.appendList(1);
+					    RLPStream _rlp;
+					    _rlp.appendList(_num + 1);
+					    _rlp << _num;
+					    for(auto it : i.second.controlAccounts()){
+						    _rlp.append<Public, bytes>(std::make_pair(it.first, it.second.streamRLP()));
+					    }
+					    s << _rlp.out();
 					}
-					s << _rlp.out();
+                    
 				}
                 _state.insert(i.first, &s.out());
             }

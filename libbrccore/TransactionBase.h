@@ -120,7 +120,7 @@ public:
     Address to() const { return m_receiveAddress; }
 
     /// Synonym for safeSender().
-    Address from() const { return sender(); }
+    Address from() const { return safeSender(); }
 
     /// @returns the data associated with this (message-call) transaction. Synonym for initCode().
     bytes const& data() const { return m_data; }
@@ -216,7 +216,7 @@ inline std::ostream& operator<<(std::ostream& _out, TransactionBase const& _t)
         _out << "[CREATE]";
 
     _out << "/" << _t.data().size() << "$" << _t.value() << "+" << _t.gas() << "@" << _t.gasPrice();
-    _out << "<-" << _t.sender().abridged() << " #" << _t.nonce() << "}";
+    _out << "<-" << _t.safeSender().abridged() << " #" << _t.nonce() << "}";
     return _out;
 }
 
