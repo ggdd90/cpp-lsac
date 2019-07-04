@@ -38,35 +38,32 @@ namespace brc
 #define MINWEIGHT 1
 #define ZEROWEIGHT 0
 
-enum Authority_type : uint64_t
+enum Authority_type : uint8_t
 {
 	Transfer_brc = 1,
-	Buy_brc = 1 << 1,
-	Buy_cookie = 1 << 2,
-	Sell_brc = 1 << 3,
-	Sell_cookie = 1 << 4,
-	Cancel_pending = 1 << 5,
-	Buy_tickets = 1 << 6,
-	Sell_tickets = 1 << 7,
-	Vote = 1 << 8,
-	Cancel_vote = 1 << 9,
-	Login_candidata = 1 << 10,
-	Logout_candidate = 1 << 11,
-	Deploy_contract = 1 << 12,
-	Execute_contract = 1 << 13,
-    Control_public = 1 << 14,
+	Buy_brc ,
+	Buy_cookie ,
+	Sell_brc,
+	Sell_cookie ,
+	Cancel_pending ,
+	Buy_tickets ,
+	Sell_tickets ,
+	Vote ,
+	Cancel_vote ,
+	Login_candidata ,
+	Logout_candidate ,
+	Deploy_contract ,
+	Execute_contract ,
+	Control_public ,
 
-	Normal_max_authority = Transfer_brc | Buy_brc | Buy_cookie | Sell_brc | Sell_cookie | Cancel_pending | Buy_tickets |
-	                        Vote | Cancel_vote | Login_candidata | Logout_candidate | Execute_contract,
-	Super_authority = Transfer_brc | Buy_brc | Buy_cookie | Sell_brc | Sell_cookie | Cancel_pending | Buy_tickets | 
-	                        Vote | Cancel_vote | Login_candidata |Logout_candidate | Deploy_contract | Execute_contract | Control_public,
-                
-    None = 0
+	Super_authority,
+	None = 0
 };
 
 struct  AuthorityWeight
 {
-	std::map<Authority_type, size_t> m_au_weight;
+	std::map<uint8_t, uint8_t> m_au_weight;
+	bool m_is_super = false;
     AuthorityWeight(){
 		m_au_weight[Transfer_brc] = 0;
 		m_au_weight[Buy_brc] = 0;
@@ -82,44 +79,105 @@ struct  AuthorityWeight
 		m_au_weight[Deploy_contract] = 0;
 		m_au_weight[Execute_contract] = 0;
 	}
-
-    void set_value(std::pair<uint64_t, size_t> _au_weight){
-	   for(auto &val : m_au_weight){
-		   if(val.first & _au_weight.first)
-			   val.second += _au_weight.second;
-	   } 
-	}
-    uint64_t get_authority() const{
-		uint64_t authority = 0;
-        for (auto const& val: m_au_weight){
-			if(val.second >= MAXWEIGHT)
-				authority |= val.first;
-        }
-		return authority;
+    void set_value(std::map<uint8_t, uint8_t> _au_weight){
+	    for(auto const& val: _au_weight){
+			m_au_weight[val.first] += val.second;
+		}
 	}
     void clear(){
 		for(auto &val : m_au_weight){
 			val.second = 0;
 		}
+		m_is_super = false;
+	}
+    bool verify(uint8_t _authority) const{
+		if((Authority_type)_authority == Authority_type::Super_authority && m_is_super)
+			return true;
+		auto ret = m_au_weight.find(_authority);
+		if(ret == m_au_weight.end())
+			return false;
+		return ret->second >= MAXWEIGHT;
 	}
 };
 
 struct AccountControl
 {
-	size_t m_weight =0;   	    /// weight:unsigned int[1,100]
-	uint64_t   m_authority =0;  	/// authority long
-	AccountControl(size_t weight, uint64_t authority): m_weight(weight), m_authority(authority){ }
-    AccountControl(){}
+	std::map<uint8_t, uint8_t> m_authoritys; //<authority, weight>
+	std::map<Address, std::map<ContractFun, uint8_t>> m_contracts;
+    AccountControl(){
+		m_authoritys.clear();
+		m_contracts.clear();
+	}
+
+private:
+    size_t contract_size() const{
+		size_t  num= 0;
+        for(auto const& val: m_contracts){
+			if(!val.second.empty())
+				++num;
+		}
+		return num;
+	}
+public:
+    void set_authority_weight(uint8_t _authority, uint8_t _weight){
+		m_authoritys[_authority] = _weight;
+		if(m_authoritys[_authority] == 0)
+			m_authoritys.erase(_authority);
+		//std::cout << (int)_authority << "  ...........   " << (int)_weight << std::endl;
+
+	}
+
+
     bytes streamRLP() const{
 		RLPStream _s(2);
-		_s << m_weight << (u256)m_authority;
+
+		RLPStream _au(m_authoritys.size() +1);
+		_au << m_authoritys.size();
+        for( auto const& v: m_authoritys){
+			_au.append<uint8_t, uint8_t>(std::make_pair(v.first, v.second));
+			//std::cout << (int)v.first << " %%%%%%%%%" << v.second << std::endl;
+		}
+		_s << _au.out();
+		RLPStream _con(contract_size() + 1);
+		_con << m_contracts.size();
+		for(auto const& v : m_contracts){
+            if(v.second.empty())
+                continue;
+			RLPStream _con_fun(v.second.size()+1);
+			_con_fun << v.second.size();
+			for(auto const& v_fun : v.second){
+				_con_fun.append<ContractFun, uint8_t>(std::make_pair(v_fun.first, v_fun.second));
+			}
+			_con.append<Address, bytes>(std::make_pair(v.first, _con_fun.out()));
+		}
+		_s << _con.out();
 		return _s.out();
 	}
     void populate(RLP const& _r){
 		int index = 0;
 		try{
-			m_weight = _r[index=0].toInt<size_t>();
-			m_authority =(uint64_t) _r[index=1].toInt<u256>();
+			bytes b_au = _r[index = 0].toBytes();
+			RLP r_au(b_au);
+			int num = r_au[0].toInt<size_t>();
+            for(int k = 1; k <= num; k++){
+				auto _pair = r_au[k].toPair<uint8_t, uint8_t>();
+				m_authoritys[_pair.first] = _pair.second;
+			}
+			bytes b_con = _r[index = 1].toBytes();
+			RLP r_con(b_con);
+			num = r_con[0].toInt<size_t>();
+			for(int k = 1; k <= num; k++){
+				auto _pair = r_con[k].toPair<Address, bytes>();
+				RLP r_fun(_pair.second);
+				int num = r_fun[0].toInt<size_t>();
+                for(int k = 1; k<=num; k++){
+					auto _b_pair = r_fun[k].toPair<ContractFun, uint8_t>();
+				    if(!m_contracts.count(_pair.first)){
+						m_contracts[_pair.first] = std::map<ContractFun, uint8_t>();
+					}
+					m_contracts[_pair.first][_b_pair.first] = _b_pair.second;
+				}
+			}
 		}
 		catch(...){
 			BOOST_THROW_EXCEPTION(InvalidAccountControl() << errinfo_field(index));
@@ -381,12 +439,13 @@ public:
 	std::vector<std::pair<u256, u256>> const& blockReward() const { return m_BlockReward; }
 
 
-    /// account control interface
-	void set_control_account(Public const& _pk, size_t weight, uint64_t authority){ m_account_control[_pk] = AccountControl(weight, authority); changed(); }
-	std::pair<size_t, uint64_t> accountControl(Public const& _pk) const;
-	std::map<Public, AccountControl> controlAccounts() const{ return m_account_control; }
-	void set_control_accounts(std::map<Public, AccountControl> const& _val){ m_account_control.clear(); m_account_control.insert(_val.begin(), _val.end()); changed(); }
-    void cancel_control_account(Public const& _pk) 
+    /// account control interface                       
+	void set_control_account(Address const& _pk, uint8_t authority, uint8_t weight);
+	void set_control_account_contract_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight);
+	std::pair<uint8_t, uint8_t> accountControl(Address const& _pk, uint8_t authority) const;
+	std::map<Address, AccountControl>const& controlAccounts() const{ return m_account_control; }
+	void set_control_accounts(std::map<Address, AccountControl> const& _val){ m_account_control.clear(); m_account_control.insert(_val.begin(), _val.end()); changed(); }
+    void cancel_control_account(Address const& _pk) 
     {
         auto ret = m_account_control.find(_pk);
         if(ret != m_account_control.end()) 
@@ -395,6 +454,8 @@ public:
 			 changed();
         }      
     }
+	bool has_contro_public(Address const& _pk){ return m_account_control.count(_pk); }
+	std::pair<bool, uint8_t>control_account_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun) const;
 
 private:
     /// Note that we've altered the account.
@@ -467,7 +528,7 @@ private:
     /// Account control data 
     /// weight:unsigned int[1,100]   
     /// authority long
-	std::map<Public, AccountControl> m_account_control;
+	std::map<Address, AccountControl> m_account_control;
 };
 
 class AccountMask

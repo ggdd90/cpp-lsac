@@ -192,7 +192,8 @@ public:
     void revert();
 
 private:
-	void verfy_authority(uint64_t _authority);
+	void verfy_authority(uint8_t _authority);
+	bytes get_contract_fun_name_hash(bytes const& _b) { return sha3(_b).ref().cropped(0, 4).toBytes(); }
 
 private:
 	const u256 c_min_price = 5;
@@ -256,8 +257,6 @@ private:
     size_t m_savepoint = 0;
 
 	AuthorityWeight m_authority_weight;
-	bool m_is_super_address = false;
-	uint64_t m_authority = 0;
 
     Logger m_execLogger{createLogger(VerbosityDebug, "exec")};
     Logger m_detailsLogger{createLogger(VerbosityTrace, "exec")};

@@ -113,7 +113,7 @@ void dev::brc::DposVote::verifyVote(Address const & _from, Address const & _to, 
 }
 
 
-void dev::brc::DposVote::verifyVote(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, uint64_t _authority /*= 0*/){
+void dev::brc::DposVote::verifyVote(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, AuthorityWeight const& au_weight){
 	std::shared_ptr<transationTool::vote_operation> p_op = nullptr; 
 	bigint total_brc = m_state.BRC(_from);
 	bigint total_tickets = m_state.ballot(_from);
@@ -134,8 +134,8 @@ void dev::brc::DposVote::verifyVote(Address const& _from, std::vector<std::share
 
         // verify authority
 		Authority_type a_type = get_authority_type(dType);
-		if((_authority & a_type) != a_type)
-			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type) + " authority:"  + std::to_string(_authority)));
+		if(au_weight.verify(a_type))
+			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type)));
 
 		switch(dType){
 		case dev::brc::ENull:

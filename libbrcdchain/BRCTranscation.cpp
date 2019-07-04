@@ -150,7 +150,7 @@ void dev::brc::BRCTranscation::verifyPendingOrder(Address const& _form, ex::exch
 
 
 void dev::brc::BRCTranscation::verifyPendingOrders(Address const& _form, u256 _total_cost, ex::exchange_plugin& _exdb,
-												   int64_t _nowTime, u256 _transcationGas, h256 _pendingOrderHash, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, uint64_t _authority){
+												   int64_t _nowTime, u256 _transcationGas, h256 _pendingOrderHash, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, AuthorityWeight const& au_weight){
 
 	u256 total_brc = 0;
 	u256 total_cost = _total_cost;
@@ -169,8 +169,8 @@ void dev::brc::BRCTranscation::verifyPendingOrders(Address const& _form, u256 _t
 
 		// verify authority
 		Authority_type a_type = get_authority_type(__type, _token_type);
-		if((_authority & a_type) != a_type)
-			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type) + " authority:" + std::to_string(_authority)));
+		if(au_weight.verify(a_type))
+			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type)));
 
 		if(_type == order_type::null_type ||
 			(_buy_type == order_buy_type::only_price && (_type == order_type::buy || _type == order_type::sell) && (_pendingOrderNum == 0 || _pendingOrderPrice == 0)) ||

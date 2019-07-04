@@ -15,6 +15,9 @@ using Addresses = h160s;
 /// A hash set of BrcdChain addresses.
 using AddressHash = std::unordered_set<h160>;
 
+/// A contract fun_name before 4
+using ContractFun = FixedHash<4>;
+
 /// The zero address.
 extern Address const ZeroAddress;
 

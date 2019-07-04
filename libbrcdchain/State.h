@@ -117,7 +117,8 @@ struct Change
         FBRC,               // = 12
         FBalance,
         BlockReward,
-        ControlAccount
+        ControlAccount,
+        ControlContract
     };
 
     Kind kind;        ///< The kind of the change.
@@ -128,7 +129,8 @@ struct Change
     std::pair<Address, u256> vote;         // event for vote to other
     std::pair<Address, bool> sysVotedate;  // event for elector
     std::pair<u256, u256> blockReward;
-	std::pair<Public, AccountControl> control_acconut;  // event for account_control
+	std::pair<Address, std::pair<uint8_t, uint8_t> > control_acconut;  // event for account_control
+	std::pair<Address, std::pair<Address, std::pair<ContractFun, uint8_t>>> control_contract;
 
     /// Helper constructor to make change log update more readable.
     Change(Kind _kind, Address const& _addr, u256 const& _value = 0)
@@ -163,9 +165,16 @@ struct Change
     {
         blockReward = std::make_pair(_pair.first, _pair.second);
     }
-    Change(Address const& _addr,Public const& _pk, size_t weight, uint64_t _au): kind(ControlAccount), address(_addr)
+    Change(Address const& _addr, Address const& _pk, uint8_t _au, uint8_t weight): kind(ControlAccount), address(_addr)
 	{
-		control_acconut = std::make_pair(_pk, AccountControl(weight, _au));
+		control_acconut.first = _pk; //std::make_pair(_pk, std::make_pair(weight, _au));
+		control_acconut.second = std::make_pair(_au, weight);
+	}
+	Change(Address const& _addr, Address const& _pk, Address const& contract_addr, ContractFun const& contrac_fun, uint8_t weight) : kind(ControlContract), address(_addr){
+		control_contract.first = _pk;
+		control_contract.second.first = contract_addr;
+		control_contract.second.second.first = contrac_fun;
+		control_contract.second.second.second = weight;
 	}
 };
 
@@ -375,11 +384,14 @@ public:
 	void addBlockReward(Address const & _addr, u256 _blockNum, u256 _rewardNum);
 
     /// account_control interface
-	std::pair<size_t, uint64_t> account_control(Address const& _addr, Public const& _pk) const;
-	std::map<Public, AccountControl> account_controls(Address const& _addr) const;
-	void set_account_control(Address const& _addr, Public const& _pk, size_t weight, uint64_t authority);
+	std::pair<bool, AccountControl> account_control(Address const& _addr, Address const& _pk ) const;
+	std::map<Address, AccountControl> account_controls(Address const& _addr) const;
+	void set_account_control(Address const& _addr, Address const& _pk, uint8_t authority, uint8_t weight);
+	void set_account_control_contract_fun(Address const& _addr, Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight);
 	void verfy_account_control(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops);
+	void verfy_account_control_contract_fun(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, SealEngineFace const& m_sealEngine, int64_t _number);
 	void execute_account_control(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops);
+	void execute_account_control_contract_fun(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops);
 
 private:
     //投票数据

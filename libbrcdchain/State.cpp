@@ -197,9 +197,9 @@ Account *State::account(Address const &_addr) {
 		const bytes _control_account = state[12].toBytes();
 		RLP _rlp_control_account(_control_account);
 		num = _rlp_control_account[0].toInt<size_t>();
-		std::map<Public, AccountControl> _control_accounts;
+		std::map<Address, AccountControl> _control_accounts;
 		for(size_t k = 1; k <= num; k++){
-			std::pair<Public, bytes> _pair = _rlp_control_account[k].toPair<Public, bytes>();
+			std::pair<Address, bytes> _pair = _rlp_control_account[k].toPair<Address, bytes>();
 			AccountControl _data_control;
 			_data_control.populate(RLP(_pair.second));
 			_control_accounts[_pair.first] = _data_control;
@@ -1217,7 +1217,11 @@ void State::rollback(size_t _savepoint) {
                 account.addBlockRewardRecoding(change.blockReward);
                 break;
 			case Change::ControlAccount:
-			    account.set_control_account(change.control_acconut.first, change.control_acconut.second.m_weight, change.control_acconut.second.m_authority);
+			    account.set_control_account(change.control_acconut.first, change.control_acconut.second.first, change.control_acconut.second.second);
+			break;
+			case Change::ControlContract:
+			    account.set_control_account_contract_fun(change.control_contract.first, change.control_contract.second.first,
+														 change.control_contract.second.second.first, change.control_contract.second.second.second);
 			break;
             default:
                 break;
@@ -1370,8 +1374,32 @@ Json::Value dev::brc::State::accoutMessage(Address const &_addr) {
         for( auto val: a->controlAccounts()){
 			Json::Value _v;
 			_v["Public"] = toJS(val.first);
-			_v["weight"] = toJS(val.second.m_weight);
-			_v["authority"] = toJS(val.second.m_authority);
+			Json::Value _a_arr;
+            for(auto const& v: val.second.m_authoritys){
+			    if(v.second <=0)
+                    continue;
+				Json::Value _au;
+				_au.append(v.first);
+				_au.append(v.second);
+				_a_arr.append(_au);
+			}
+			_v["authority"] = _a_arr;
+
+			Json::Value _c_arr;
+            for(auto const& v : val.second.m_contracts){
+				Json::Value _con;
+				_con["addr"] = toJS(v.first);
+				Json::Value bvs;
+                for(auto const& bv: v.second){
+					Json::Value _bv;
+					_bv.append(toJS(bv.first));
+					_bv.append(bv.second);
+					bvs.append(_bv);
+				}
+				_con["contract_fun"] = bvs;
+				_c_arr.append(_con);
+			}
+			_v["contract"] = _c_arr;
 			_array_control.append(_v);
 		}
 		jv["account_control"] = _array_control;
@@ -1553,40 +1581,50 @@ void dev::brc::State::systemPendingorder(int64_t _time)
 	cnote << m_exdb.check_version(false);
 }
 
-
-std::pair<size_t, uint64_t> dev::brc::State::account_control(Address const& _addr, Public const& _pk) const{
-	if(auto a = account(_addr))
-		return a->accountControl(_pk);
-	else
-		return std::make_pair(0, 0);
+std::pair<bool, dev::brc::AccountControl> dev::brc::State::account_control(Address const& _addr, Address const& _pk) const{
+   if(auto a= account(_addr)){
+	   auto _con = a->controlAccounts();
+	   if(_con.count(_pk))
+		   return std::make_pair(true, _con[_pk]);
+   }
+   return std::make_pair(false, AccountControl());
 }
 
-
-std::map<dev::Public, dev::brc::AccountControl> dev::brc::State::account_controls(Address const& _addr) const{
+std::map<dev::Address, dev::brc::AccountControl> dev::brc::State::account_controls(Address const& _addr) const{
 	if(auto a = account(_addr))
 		return a->controlAccounts();
 	else
-		return std::map<dev::Public, dev::brc::AccountControl>();
+		return std::map<dev::Address, dev::brc::AccountControl>();
 }
 
-void dev::brc::State::set_account_control(Address const& _addr, Public const& _pk, size_t weight, uint64_t authority){
+
+void dev::brc::State::set_account_control(Address const& _addr, Address const& _pk, uint8_t authority, uint8_t weight){
 	Account *a = account(_addr);
-    if(!a){
+	if(!a){
 		createAccount(_addr, { requireAccountStartNonce(), 0 });
 		a = account(_addr);
-        if(!a)
+		if(!a)
 			BOOST_THROW_EXCEPTION(UnknownAccount() << errinfo_wrongAddress(toString(_addr)));
 	}
-	std::pair<size_t, uint64_t> _pair = a->accountControl(_pk);
+	auto _pair = a->accountControl(_pk,authority);
 
-    if(weight == 0 && authority == 0) {
-         a->cancel_control_account(_pk);
-    }
-    else {
-        a->set_control_account(_pk, weight, authority);
-	    m_changeLog.emplace_back(_addr, _pk, _pair.first, _pair.second);
-    }      
+	a->set_control_account(_pk, authority, weight);
+	m_changeLog.emplace_back(_addr, _pk, authority, _pair.second);
+	//testlog << (int)authority << "  ...........   " << (int)weight;
+}
 
+void dev::brc::State::set_account_control_contract_fun(Address const& _addr, Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight){
+	Account *a = account(_addr);
+	if(!a){
+		createAccount(_addr, { requireAccountStartNonce(), 0 });
+		a = account(_addr);
+		if(!a)
+			BOOST_THROW_EXCEPTION(UnknownAccount() << errinfo_wrongAddress(toString(_addr)));
+	}
+	auto _pair = a->control_account_fun(_pk, contract_addr, contract_fun);
+	a->set_control_account_contract_fun(_pk, contract_addr, contract_fun, weight);
+	if(_pair.first && _pair.second)
+		m_changeLog.emplace_back(_addr, _pk, contract_addr, contract_fun, _pair.second);
 }
 
 void dev::brc::State::verfy_account_control(Address const & _from, std::vector<std::shared_ptr<transationTool::operation>> const & _ops){
@@ -1602,29 +1640,54 @@ void dev::brc::State::verfy_account_control(Address const & _from, std::vector<s
 			cerror << "pendingOrders  dynamic type field!";
 			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("account_control type is error!")));
 		}
+        if(pen->m_authority >= Authority_type::Super_authority || pen->m_authority == Authority_type::None)
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" not has this authority"+ std::to_string(pen->m_authority))));
         // verify super_address
         if(_from == dev::toAddress(Public(pen->m_control_addr)))
 		   BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("the public_key is the super_address:"+toString(_from) + " can't do the weight and authority")));
         // verify weight
-        if(pen->m_weight == ZEROWEIGHT && pen->m_authority != 0)
-            BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("m_weight is zero and have m_authority")));
+		/*if(pen->m_weight == ZEROWEIGHT && pen->m_authority != 0)
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("m_weight is zero and have m_authority")));*/
         if(pen->m_weight < MINWEIGHT || pen->m_weight > MAXWEIGHT){
 			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" account's weight out of range: [1,100]")));
 		}
-		testlog << " verfy pen->m_weight:" << pen->m_weight << " pen->m_authority:" << pen->m_authority << "" << pen->m_control_addr;
+		testlog << " verfy pen->m_weight:" << (int)pen->m_weight << " pen->m_authority:" << (int)pen->m_authority << "" << pen->m_control_addr;
 
-        std::pair<size_t, uint64_t> _pair = a->accountControl(pen->m_control_addr);
-        if(_pair.first == ZEROWEIGHT && _pair.second == ZEROWEIGHT)
-            pub_control_num += 1;
-        if(pen->m_weight == ZEROWEIGHT && pen->m_authority == 0)
-            pub_control_num -= 1;
-        if(_pair.first == pen->m_weight && _pair.second == pen->m_authority)
+        auto _pair = a->accountControl(pen->m_control_addr, pen->m_authority);
+		/*if(_pair.first == ZEROWEIGHT && _pair.second == ZEROWEIGHT)
+			pub_control_num += 1;
+		if(pen->m_weight == ZEROWEIGHT && pen->m_authority == 0)
+			pub_control_num -= 1;*/
+        if(_pair.first == pen->m_authority && _pair.second == pen->m_weight)
             BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("m_weight and m_authority is the same!")));    
 	}
-    if(pub_control_num > PUBLICNUM)
-         BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("pub_key is more than three!")));
+    /*if(pub_control_num > PUBLICNUM)
+         BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("pub_key is more than three!")));*/
 } 
 
+
+void dev::brc::State::verfy_account_control_contract_fun(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, SealEngineFace const& m_sealEngine, int64_t _number){
+	Account *a = account(_from);
+	if(!a){
+		BOOST_THROW_EXCEPTION(UnknownAccount() << errinfo_wrongAddress(toString(_from)));
+	}
+	for(auto const& val : _ops){
+		std::shared_ptr<transationTool::control_acconut_contract_operation> pen = std::dynamic_pointer_cast<transationTool::control_acconut_contract_operation>(val);
+		if(!pen){
+			cerror << "pendingOrders  dynamic type field!";
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("account_control type is error!")));
+		}
+        if(pen->m_weight > MAXWEIGHT){
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" account's weight out of range: [1,100]")));
+		}
+        if(!a->has_contro_public(pen->m_control_addr)){
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" account not has this public_key:"+toString(pen->m_control_addr))));
+		}
+        if(!m_sealEngine.isPrecompiled(pen->m_contract_addr, _number) || !addressHasCode(pen->m_contract_addr)){
+			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" not has contract in address:"+toString(pen->m_contract_addr))));
+		}
+	}
+}
 
 void dev::brc::State::execute_account_control(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops){
 	for(auto const& val : _ops){
@@ -1633,10 +1696,21 @@ void dev::brc::State::execute_account_control(Address const& _from, std::vector<
 			cerror << "pendingOrders  dynamic type field!";
 			BOOST_THROW_EXCEPTION(InvalidDynamic());
 		} 
-	    set_account_control(_from, pen->m_control_addr, pen->m_weight, pen->m_authority);
+	    set_account_control(_from, pen->m_control_addr, pen->m_authority, pen->m_weight);
 	}
 }
 
+
+void dev::brc::State::execute_account_control_contract_fun(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops){
+	for(auto const& val : _ops){
+		std::shared_ptr<transationTool::control_acconut_contract_operation> pen = std::dynamic_pointer_cast<transationTool::control_acconut_contract_operation>(val);
+		if(!pen){
+			cerror << "pendingOrders  dynamic type field!";
+			BOOST_THROW_EXCEPTION(InvalidDynamic());
+		}
+		set_account_control_contract_fun(_from, pen->m_control_addr, pen->m_contract_addr, pen->m_contract_fun, pen->m_weight);
+	}
+}
 
 dev::u256 dev::brc::State::voteAll(Address const& _id) const
 {
@@ -1919,7 +1993,7 @@ AddressHash dev::brc::commit(AccountMap const &_cache, SecureTrieDB<Address, DB>
 					    _rlp.appendList(_num + 1);
 					    _rlp << _num;
 					    for(auto it : i.second.controlAccounts()){
-						    _rlp.append<Public, bytes>(std::make_pair(it.first, it.second.streamRLP()));
+						    _rlp.append<Address, bytes>(std::make_pair(it.first, it.second.streamRLP()));
 					    }
 					    s << _rlp.out();
 					}

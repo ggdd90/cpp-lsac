@@ -74,11 +74,55 @@ void dev::brc::Account::addBlockRewardRecoding(std::pair<u256, u256> _pair)
 }
 
 
-std::pair<size_t, uint64_t> dev::brc::Account::accountControl(Public const& _pk) const{
+void dev::brc::Account::set_control_account(Address const& _pk, uint8_t authority, uint8_t weight){
+	if(m_account_control.count(_pk)){
+		m_account_control[_pk].set_authority_weight(authority, weight);
+	}
+	else{
+		AccountControl _ac;
+		_ac.set_authority_weight(authority, weight);
+		m_account_control[_pk] = _ac;
+	}
+	changed();
+}
+
+
+void dev::brc::Account::set_control_account_contract_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight){
+	if(m_account_control.count(_pk))
+		return;
+	if(!m_account_control[_pk].m_contracts.count(contract_addr))
+		m_account_control[_pk].m_contracts[contract_addr] = std::map<ContractFun, uint8_t>();
+	m_account_control[_pk].m_contracts[contract_addr][contract_fun] = weight;
+	changed();
+}
+
+std::pair<uint8_t, uint8_t> dev::brc::Account::accountControl(Address const& _pk, uint8_t authority) const{
+	std::pair<uint8_t, uint8_t> _pair = std::make_pair(authority, 0);
+	auto ret = m_account_control.find(_pk);
+    if(ret == m_account_control.end())
+		return _pair;
+	auto ret_1 = ret->second.m_authoritys.find(authority);
+    if(ret_1 == ret->second.m_authoritys.end())
+		return _pair;
+	_pair.second = ret_1->second;
+	return _pair;
+}
+
+
+std::pair<bool, uint8_t> dev::brc::Account::control_account_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun) const{
+	std::pair<bool, uint8_t> _pair = std::make_pair(false, 0);
 	auto ret = m_account_control.find(_pk);
 	if(ret == m_account_control.end())
-		return std::make_pair(0, 0);
-	return std::make_pair(ret->second.m_weight, ret->second.m_authority);
+		return _pair;
+	auto ret_1 = ret->second.m_contracts.find(contract_addr);
+	if(ret_1 == ret->second.m_contracts.end())
+		return _pair;
+	auto ret_2 = ret_1->second.find(contract_fun);
+	if(ret_2 == ret_1->second.end())
+		return _pair;
+	_pair.first = true;
+	_pair.second = ret_2->second;
+	return _pair;
 }
 
 void dev::brc::Account::manageSysVote(Address const& _otherAddr, bool _isLogin, u256 _tickets)

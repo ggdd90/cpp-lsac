@@ -224,12 +224,23 @@ bool sign_trx_from_json(const bfs1::path &path, bool _is_send, std::string _ip =
 						}     
 						case controlAccount:{
 							auto new_op = new control_acconut_operation((op_type)type,
-															 Public(op_obj["m_control_addr"].get_str()),
-															 (size_t)op_obj["m_weight"].get_int(),
-															 uint64_t(op_obj["m_authority"].get_uint64())
+															 Address(op_obj["m_control_addr"].get_str()),
+															 (uint8_t)op_obj["m_weight"].get_int(),
+															 (uint8_t)(op_obj["m_authority"].get_int())
 							);
 							tx.ops.push_back(std::shared_ptr<control_acconut_operation>(new_op));
                             break;
+						}
+						case controlContractFun:
+						{
+							auto new_op = new control_acconut_operation((op_type)type,
+																		Address(op_obj["m_control_addr"].get_str()),
+																		(Address)op_obj["m_contract_addr"].get_str(),
+																		(ContractFun)op_obj["m_contract_fun"].get_str(),
+																		(uint8_t)(op_obj["m_authority"].get_int())
+							);
+							tx.ops.push_back(std::shared_ptr<control_acconut_operation>(new_op));
+							break;
 						}
 					}
                 }
@@ -242,26 +253,26 @@ bool sign_trx_from_json(const bfs1::path &path, bool _is_send, std::string _ip =
 
         //获取私钥
 
-		std::set<Public> _pb;
+		std::set<Address> _pb;
         if(obj.count("Public")){
 		    for(auto const& _p: obj["Public"].get_array()){
-				_pb.insert(Public(_p.get_str()));
+				_pb.insert(Address(_p.get_str()));
 			}
 		}
 
-        std::map<Public, Secret> keys;
+        std::map<Address, Secret> keys;
         if (obj.count("keys")) {
             for (auto &obj : obj["keys"].get_array()) {
                 auto key = obj.get_str();
                 auto keyPair = dev::KeyPair(dev::Secret(dev::crypto::from_base58(key)));
-                keys[keyPair.pub()] = keyPair.secret();
+                keys[ dev::toAddress(keyPair.pub())] = keyPair.secret();
             }
         } else {
             std::cout << "not find key.....\n";
             exit(1);
         }
 
-		std::map<Public, Secret> _pb_keys;
+		std::map<Address, Secret> _pb_keys;
         for (auto p: _pb)
         {
 			if(keys.count(p))

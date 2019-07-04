@@ -57,7 +57,7 @@ public:
     void setState(State& _s) { m_state = _s; }
 public:
     void verifyVote(Address const& _from, Address const& _to, size_t _type, u256 tickets = 0);
-	void verifyVote(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, uint64_t _authority);
+	void verifyVote(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, AuthorityWeight const& au_weight);
 	std::map<Address, u256>  VarlitorsAddress() const { return m_state.voteDate(SysVarlitorAddress); }
 	std::map<Address, u256>  CanlitorAddress() const { return m_state.voteDate(SysCanlitorAddress); }
 	void getSortElectors(std::vector<Address>& _electors, size_t _num, std::vector<Address> _ignore) const;	

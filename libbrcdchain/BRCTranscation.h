@@ -54,7 +54,7 @@ namespace dev {
                                     u256 _pendingOrderPrice, u256 _transcationGas = u256(0) ,h256 _pendingOrderHash = h256(0));
 			void verifyPendingOrders(Address const& _addr, u256 _total_cost, ex::exchange_plugin& _exdb,
 									 int64_t _nowTime, u256 _transcationGas, h256 _pendingOrderHash, 
-									 std::vector<std::shared_ptr<transationTool::operation>> const& _ops, uint64_t _authority);
+									 std::vector<std::shared_ptr<transationTool::operation>> const& _ops, AuthorityWeight const& au_weight);
 
 			void verifyCancelPendingOrder(ex::exchange_plugin &_exdb, Address _addr, h256 _HashV);
 			void verifyCancelPendingOrders(ex::exchange_plugin &_exdb, Address _addr, std::vector<std::shared_ptr<transationTool::operation>> const& _ops);

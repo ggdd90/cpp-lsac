@@ -229,31 +229,19 @@ void Executive::initialize(Transaction const& _transaction)
 		    // only if the all Public_key has authority total weight bigger 100 
 			auto signs = m_t.sign_structs();
 			auto account_control = m_s.account_controls(m_t.sender());
-			size_t weight = 0;
 			m_authority_weight.clear();
-			m_authority = 0;
 			for(auto const& pb : signs){
-				if(m_t.sender() == dev::toAddress(pb.first)){
-					weight += MAXWEIGHT;
-					m_authority = Authority_type::Super_authority;
+				if(m_t.sender() == pb.first){
+					m_authority_weight.m_is_super = true;
 					break;
 				}
 				if(account_control.count(pb.first)){
-					//testlog << "pb:" << pb.first << " au:" << account_control[pb.first].m_authority << " weight:" << account_control[pb.first].m_weight;
-
-					weight += account_control[pb.first].m_weight;
-					m_authority_weight.set_value(std::make_pair(account_control[pb.first].m_authority, account_control[pb.first].m_weight));
+					m_authority_weight.set_value(account_control[pb.first].m_authoritys);
 				}
 			}
-			if(weight < MAXWEIGHT)
-				BOOST_THROW_EXCEPTION(NotEnoughWeightTransaction() << errinfo_comment(std::string("the transaction not enough weight:" + std::to_string(weight))));
-			//testlog << " weight:" << weight << "authority:"<< m_authority;
-			if(!m_authority)
-				m_authority = m_authority_weight.get_authority();
-			//testlog << "authority:" << m_authority;
 		}
 		else {
-			m_authority = Super_authority;
+			m_authority_weight.m_is_super = true;
 		}
         
         // Avoid invalid transactions.
@@ -296,6 +284,8 @@ void Executive::initialize(Transaction const& _transaction)
 			}
 			else if(m_sealEngine.isPrecompiled(m_t.sender(), m_envInfo.number()) || m_s.addressHasCode(m_t.sender())){
 				verfy_authority(Authority_type::Execute_contract);
+				if(m_t.data().size() >= 8)
+					testlog << BrcYellow << get_contract_fun_name_hash(m_t.data());
 			}
 			else{
 				verfy_authority(Authority_type::Transfer_brc);
@@ -437,11 +427,11 @@ void Executive::initialize(Transaction const& _transaction)
 
 			try{
 				if(m_batch_params._type == transationTool::op_type::vote)
-					m_vote.verifyVote(m_t.sender(), m_batch_params._operation, m_authority);
+					m_vote.verifyVote(m_t.sender(), m_batch_params._operation, m_authority_weight);
 				else if(m_batch_params._type == transationTool::op_type::pendingOrder)
 				{
 					m_brctranscation.verifyPendingOrders(m_t.sender(), (u256)totalCost, m_s.exdb(), m_envInfo.timestamp(),
-														 m_baseGasRequired * m_t.gasPrice(), m_t.sha3(), m_batch_params._operation, m_authority);
+														 m_baseGasRequired * m_t.gasPrice(), m_t.sha3(), m_batch_params._operation, m_authority_weight);
 				}
 				else if(m_batch_params._type == transationTool::op_type::cancelPendingOrder)
 				{
@@ -452,6 +442,10 @@ void Executive::initialize(Transaction const& _transaction)
 				{  
 					verfy_authority(Authority_type::Super_authority);
 					m_s.verfy_account_control(m_t.sender(), m_batch_params._operation);
+				}
+				else if(m_batch_params._type == transationTool::op_type::controlContractFun){
+					verfy_authority(Authority_type::Super_authority);
+					m_s.verfy_account_control_contract_fun(m_t.sender(), m_batch_params._operation, m_sealEngine, m_envInfo.number());
 				}
 
 			}
@@ -582,6 +576,9 @@ bool Executive::call(CallParameters const& _p, u256 const& _gasPrice, Address co
 		}
 		else if(_type == transationTool::op_type::controlAccount){
 			m_s.execute_account_control(m_t.sender(), m_batch_params._operation);
+		}
+		else if(_type == transationTool::op_type::controlContractFun){
+			m_s.execute_account_control_contract_fun(m_t.sender(), m_batch_params._operation);
 		}
 		m_batch_params.clear();
 		return true;
@@ -834,9 +831,9 @@ void Executive::revert()
 }
 
 
-void dev::brc::Executive::verfy_authority(uint64_t _authority){
-	if((m_authority & _authority) != _authority )
-		BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :"+ std::to_string(_authority)+ " authority:" + std::to_string(m_authority)));
+void dev::brc::Executive::verfy_authority(uint8_t _authority){
+	 if(!m_authority_weight.verify(_authority))
+	    BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :"+ std::to_string(_authority)));
 }
 
 void dev::brc::Executive::setCallParameters(Address const& _senderAddress,

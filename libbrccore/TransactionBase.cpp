@@ -28,7 +28,7 @@ TransactionBase::TransactionBase(TransactionSkeleton const& _ts, Secret const& _
     }
 }
 
-dev::brc::TransactionBase::TransactionBase(TransactionSkeleton const& _ts, std::map<Public, Secret>const& _secrets)
+dev::brc::TransactionBase::TransactionBase(TransactionSkeleton const& _ts, std::map<Address, Secret>const& _secrets)
     : m_type(_ts.creation ? ContractCreation : MessageCall),
 	m_nonce(_ts.nonce),
 	m_value(_ts.value),
@@ -43,7 +43,7 @@ dev::brc::TransactionBase::TransactionBase(TransactionSkeleton const& _ts, std::
 
 	for(auto &_s : _secrets){
 		if(_s.second){
-			if(_s.first != KeyPair(_s.second).pub()){
+			if(_s.first != dev::toAddress(KeyPair(_s.second).pub())){
 				cerror << " private_key is error!";
 				continue;
 			}
@@ -140,7 +140,7 @@ void dev::brc::TransactionBase::populate_signs(bytes const& _data){
 	std::vector<bytes> _bs = _r.toVector<bytes>();
     for (auto const& _b : _bs){
 		RLP rlp(_b);
-		Public _pk = rlp[0].convert<Public>(RLP::LaissezFaire);
+		Address _pk = rlp[0].convert<Address>(RLP::LaissezFaire);
 		int const v = rlp[1].toInt<int>();
 		h256 const r = rlp[2].toInt<u256>();
 		h256 const s = rlp[3].toInt<u256>();
@@ -172,7 +172,7 @@ void dev::brc::TransactionBase::verify_signs(bool _is_ckeck_pb){
 			cerror << " verfy sign error!";
 			BOOST_THROW_EXCEPTION(InvalidSignature());
 		}
-		if(_it.first != p){
+		if(_it.first != dev::toAddress(p)){
 			cerror << " public key not match";
 			BOOST_THROW_EXCEPTION(InvalidSignature());
 		}

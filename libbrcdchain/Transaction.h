@@ -81,6 +81,7 @@ namespace dev
                 deployContract =5,
                 executeContract =6,
                 controlAccount =7,
+                controlContractFun =8,
             };
 
             static std::map<op_type, u256> c_add_value = {
@@ -91,7 +92,8 @@ namespace dev
                     {cancelPendingOrder, 2000},
                     {deployContract, 0},
                     {executeContract, 0},
-					{controlAccount, 0}
+					{controlAccount, 0},
+			        {controlContractFun, 0 }
 
             };
 
@@ -239,11 +241,11 @@ namespace dev
 			struct control_acconut_operation :public operation
 			{
 				op_type m_type;
-				Public m_control_addr;         // change pubilc_key 
-				size_t m_weight;        // weight
-				uint64_t m_authority;       // authority
+				Address m_control_addr;         // change pubilc_key 
+				uint8_t m_weight;        // weight
+				uint8_t m_authority;       // authority
 
-				control_acconut_operation(op_type type, const Public& control_addr, size_t weight, uint64_t authority)
+				control_acconut_operation(op_type type, const Address& control_addr, size_t weight, uint64_t authority)
 					: m_type(type), m_control_addr(control_addr), m_weight(weight), m_authority(authority){
 				}
 				/// unserialize from data
@@ -252,24 +254,35 @@ namespace dev
 				control_acconut_operation(const bytes& Data){
 					RLP rlp(Data);
 					m_type = (op_type)rlp[0].convert<uint8_t>(RLP::LaissezFaire);
-					m_control_addr = rlp[1].convert<Public>(RLP::LaissezFaire);
-					m_weight = rlp[2].convert<size_t>(RLP::LaissezFaire);
-					m_authority = (uint64_t)rlp[3].convert<u256>(RLP::LaissezFaire);
+					m_control_addr = rlp[1].convert<Address>(RLP::LaissezFaire);
+					m_weight = rlp[2].convert<uint8_t>(RLP::LaissezFaire);
+					m_authority = rlp[3].convert<uint8_t>(RLP::LaissezFaire);
 					
 				}
 				/// bytes serialize this struct
 				/// \return  bytes
-			    //OPERATION_SERIALIZE((m_type)(m_control_addr)(m_weight)(m_authority))
 				virtual bytes serialize()  const{
 					RLPStream stream(4);
-					stream << (uint8_t)m_type << m_control_addr << m_weight << (u256)m_authority;
-					/*stream.append((uint8_t)m_type);
-					stream.append(m_control_addr);
-					stream.append(m_weight);
-					stream.append((u256)m_authority);*/
+					stream << (uint8_t)m_type << m_control_addr << m_weight <<m_authority;
 					return stream.out();
 				}
 				virtual ~control_acconut_operation(){ }
+			};
+
+			struct control_acconut_contract_operation :public operation
+			{
+				op_type m_type;
+				Address m_control_addr;         // change pubilc_key
+				Address m_contract_addr;         //
+				ContractFun m_contract_fun;
+				uint8_t m_weight;
+				control_acconut_contract_operation(op_type type, Address const& control_addr, Address const& contract_addr, ContractFun const& con_fun, uint8_t weight) :
+					m_type(type), m_control_addr(control_addr), m_contract_addr(contract_addr), m_contract_fun(con_fun), m_weight(weight){
+				}
+
+				OPERATION_UNSERIALIZE(control_acconut_contract_operation, (m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
+
+				OPERATION_SERIALIZE((m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
 			};
 
         }  // namespace transationTool
@@ -315,7 +328,7 @@ namespace dev
             {}
 
             /// many sign 
-			Transaction(TransactionSkeleton const& _ts, std::map<Public, Secret>const& _secrets)
+			Transaction(TransactionSkeleton const& _ts, std::map<Address, Secret>const& _secrets)
 				: TransactionBase(_ts, _secrets){
 			}
 
