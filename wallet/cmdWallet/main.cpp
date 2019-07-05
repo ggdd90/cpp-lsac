@@ -225,8 +225,8 @@ bool sign_trx_from_json(const bfs1::path &path, bool _is_send, std::string _ip =
 						case controlAccount:{
 							auto new_op = new control_acconut_operation((op_type)type,
 															 Address(op_obj["m_control_addr"].get_str()),
-															 (Authority)op_obj["m_weight"].get_int(),
-															 (Weight)(op_obj["m_authority"].get_int())
+															 (Weight)op_obj["m_weight"].get_int(),
+															 (Authority)(op_obj["m_authority"].get_int())
 							);
 							tx.ops.push_back(std::shared_ptr<control_acconut_operation>(new_op));
                             break;
