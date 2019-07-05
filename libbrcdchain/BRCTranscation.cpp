@@ -169,7 +169,7 @@ void dev::brc::BRCTranscation::verifyPendingOrders(Address const& _form, u256 _t
 
 		// verify authority
 		Authority_type a_type = get_authority_type(__type, _token_type);
-		if(au_weight.verify(a_type))
+		if(!au_weight.verify(a_type))
 			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type)));
 
 		if(_type == order_type::null_type ||

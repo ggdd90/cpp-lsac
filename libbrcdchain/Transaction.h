@@ -1,7 +1,7 @@
 #pragma once
 
 
-
+#include "Account.h"
 #include <libbrccore/ChainOperationParams.h>
 #include <libbrccore/Common.h>
 #include <libbrccore/TransactionBase.h>
@@ -231,21 +231,21 @@ namespace dev
             struct contract_operation : public operation
             {
                 op_type m_type;
-                bytes m_date;
+                bytes m_data;
                 contract_operation(){}
-                contract_operation(op_type _type, bytes _d):m_type(_type) { m_date = _d; }
-                OPERATION_UNSERIALIZE(contract_operation, (m_date))
-                OPERATION_SERIALIZE((m_date))
+                contract_operation(op_type _type, bytes _d):m_type(_type) { m_data = _d; }
+                OPERATION_UNSERIALIZE(contract_operation, (m_data))
+                OPERATION_SERIALIZE((m_data))
             };
 
 			struct control_acconut_operation :public operation
 			{
 				op_type m_type;
 				Address m_control_addr;         // change pubilc_key 
-				uint8_t m_weight;        // weight
-				uint8_t m_authority;       // authority
+				Weight m_weight;        // weight
+				Authority m_authority;       // authority
 
-				control_acconut_operation(op_type type, const Address& control_addr, size_t weight, uint64_t authority)
+				control_acconut_operation(op_type type, const Address& control_addr, Weight weight, Authority authority)
 					: m_type(type), m_control_addr(control_addr), m_weight(weight), m_authority(authority){
 				}
 				/// unserialize from data
@@ -255,15 +255,15 @@ namespace dev
 					RLP rlp(Data);
 					m_type = (op_type)rlp[0].convert<uint8_t>(RLP::LaissezFaire);
 					m_control_addr = rlp[1].convert<Address>(RLP::LaissezFaire);
-					m_weight = rlp[2].convert<uint8_t>(RLP::LaissezFaire);
-					m_authority = rlp[3].convert<uint8_t>(RLP::LaissezFaire);
+					m_weight = rlp[2].convert<Weight>(RLP::LaissezFaire);
+					m_authority = (Authority)rlp[3].convert<uint8_t>(RLP::LaissezFaire);
 					
 				}
 				/// bytes serialize this struct
 				/// \return  bytes
 				virtual bytes serialize()  const{
 					RLPStream stream(4);
-					stream << (uint8_t)m_type << m_control_addr << m_weight <<m_authority;
+					stream << (uint8_t)m_type << m_control_addr << (uint8_t)m_weight <<m_authority;
 					return stream.out();
 				}
 				virtual ~control_acconut_operation(){ }
@@ -275,14 +275,30 @@ namespace dev
 				Address m_control_addr;         // change pubilc_key
 				Address m_contract_addr;         //
 				ContractFun m_contract_fun;
-				uint8_t m_weight;
+				Weight m_weight;
 				control_acconut_contract_operation(op_type type, Address const& control_addr, Address const& contract_addr, ContractFun const& con_fun, uint8_t weight) :
 					m_type(type), m_control_addr(control_addr), m_contract_addr(contract_addr), m_contract_fun(con_fun), m_weight(weight){
 				}
 
-				OPERATION_UNSERIALIZE(control_acconut_contract_operation, (m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
+				//OPERATION_UNSERIALIZE(control_acconut_contract_operation, (m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
 
-				OPERATION_SERIALIZE((m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
+				//OPERATION_SERIALIZE((m_type)(m_control_addr)(m_contract_addr)(m_contract_fun)(m_weight))
+
+				control_acconut_contract_operation(const bytes& Data){
+					RLP rlp(Data);
+					m_type = (op_type)rlp[0].convert<uint8_t>(RLP::LaissezFaire);
+					m_control_addr = rlp[1].convert<Address>(RLP::LaissezFaire);
+					m_contract_addr = rlp[2].convert<Address>(RLP::LaissezFaire);
+					m_contract_fun = rlp[3].convert<ContractFun>(RLP::LaissezFaire);
+					m_weight = rlp[4].convert<Weight>(RLP::LaissezFaire);
+
+				}
+				virtual bytes serialize()  const{
+					RLPStream stream(5);
+					stream << (uint8_t)m_type << m_control_addr << m_contract_addr << m_contract_fun<< m_weight;
+					return stream.out();
+				}
+				virtual ~control_acconut_contract_operation(){ }
 			};
 
         }  // namespace transationTool

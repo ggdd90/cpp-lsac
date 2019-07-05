@@ -1598,7 +1598,7 @@ std::map<dev::Address, dev::brc::AccountControl> dev::brc::State::account_contro
 }
 
 
-void dev::brc::State::set_account_control(Address const& _addr, Address const& _pk, uint8_t authority, uint8_t weight){
+void dev::brc::State::set_account_control(Address const& _addr, Address const& _pk, Authority authority, Weight weight){
 	Account *a = account(_addr);
 	if(!a){
 		createAccount(_addr, { requireAccountStartNonce(), 0 });
@@ -1613,7 +1613,7 @@ void dev::brc::State::set_account_control(Address const& _addr, Address const& _
 	//testlog << (int)authority << "  ...........   " << (int)weight;
 }
 
-void dev::brc::State::set_account_control_contract_fun(Address const& _addr, Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight){
+void dev::brc::State::set_account_control_contract_fun(Address const& _addr, Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, Weight weight){
 	Account *a = account(_addr);
 	if(!a){
 		createAccount(_addr, { requireAccountStartNonce(), 0 });
@@ -1646,9 +1646,7 @@ void dev::brc::State::verfy_account_control(Address const & _from, std::vector<s
         if(_from == dev::toAddress(Public(pen->m_control_addr)))
 		   BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("the public_key is the super_address:"+toString(_from) + " can't do the weight and authority")));
         // verify weight
-		/*if(pen->m_weight == ZEROWEIGHT && pen->m_authority != 0)
-			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string("m_weight is zero and have m_authority")));*/
-        if(pen->m_weight < MINWEIGHT || pen->m_weight > MAXWEIGHT){
+        if(pen->m_weight > MAXWEIGHT){
 			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" account's weight out of range: [1,100]")));
 		}
 		testlog << " verfy pen->m_weight:" << (int)pen->m_weight << " pen->m_authority:" << (int)pen->m_authority << "" << pen->m_control_addr;
@@ -1667,8 +1665,10 @@ void dev::brc::State::verfy_account_control(Address const & _from, std::vector<s
 
 
 void dev::brc::State::verfy_account_control_contract_fun(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops, SealEngineFace const& m_sealEngine, int64_t _number){
+	testlog << "verify account_control_contract_fun";
 	Account *a = account(_from);
 	if(!a){
+		cerror << "acount error:" << _from;
 		BOOST_THROW_EXCEPTION(UnknownAccount() << errinfo_wrongAddress(toString(_from)));
 	}
 	for(auto const& val : _ops){
@@ -1687,6 +1687,7 @@ void dev::brc::State::verfy_account_control_contract_fun(Address const& _from, s
 			BOOST_THROW_EXCEPTION(VerifyAccountControlFiled() << errinfo_comment(std::string(" not has contract in address:"+toString(pen->m_contract_addr))));
 		}
 	}
+	testlog << "verify account_control_contract_fun ok ....";
 }
 
 void dev::brc::State::execute_account_control(Address const& _from, std::vector<std::shared_ptr<transationTool::operation>> const& _ops){

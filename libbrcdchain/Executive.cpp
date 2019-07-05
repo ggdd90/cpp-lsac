@@ -282,10 +282,11 @@ void Executive::initialize(Transaction const& _transaction)
             if(m_t.isCreation()){
 				verfy_authority(Authority_type::Deploy_contract);
 			}
-			else if(m_sealEngine.isPrecompiled(m_t.sender(), m_envInfo.number()) || m_s.addressHasCode(m_t.sender())){
+			else if(m_sealEngine.isPrecompiled(m_t.to(), m_envInfo.number()) || m_s.addressHasCode(m_t.to())){
 				verfy_authority(Authority_type::Execute_contract);
-				if(m_t.data().size() >= 8)
-					testlog << BrcYellow << get_contract_fun_name_hash(m_t.data());
+				ContractFun fun_con = ContractFun(get_contract_fun_name_hash(m_t.data()));
+				testlog << "contract_fun:" << fun_con;
+				verify_control_contract_fun(fun_con);
 			}
 			else{
 				verfy_authority(Authority_type::Transfer_brc);
@@ -314,6 +315,7 @@ void Executive::initialize(Transaction const& _transaction)
 				LOG(m_execLogger)<< "m_t.sender:" << m_t.sender() << " * "<< " to:" << m_t.receiveAddress();
 				m_excepted = TransactionException::BadRLP;
 				std::string ex_info = "badRLP the data is empty...";
+				cerror << ex_info;
 				BOOST_THROW_EXCEPTION( BadRLP()<< errinfo_comment(ex_info));
 			}
 			bigint totalCost = m_t.gas()* m_t.gasPrice();
@@ -339,7 +341,6 @@ void Executive::initialize(Transaction const& _transaction)
 					std::string ex_info = "This function is suspended type:" + toString(_type);
 					BOOST_THROW_EXCEPTION(InvalidFunction() << errinfo_comment(ex_info));
 				}
-
 				m_batch_params._type = _type;
                 switch (_type)
                 {
@@ -399,11 +400,17 @@ void Executive::initialize(Transaction const& _transaction)
 					m_batch_params._operation.push_back(std::make_shared<transationTool::control_acconut_operation>(_op));
 				}
                 break;
+				case  transationTool::controlContractFun:
+				{
+					transationTool::control_acconut_contract_operation _op = transationTool::control_acconut_contract_operation(val);
+					testlog << "input .........";
+					m_batch_params._operation.push_back(std::make_shared<transationTool::control_acconut_contract_operation>(_op));
+				}
+				break;
                 default:
 					m_excepted = TransactionException::DefaultError;
-					BOOST_THROW_EXCEPTION(
-						DefaultError()
-						<< errinfo_comment(m_t.sender().hex()));
+					cerror << " DefaultError: not have operate type";
+					BOOST_THROW_EXCEPTION(DefaultError()<< errinfo_comment(m_t.sender().hex()));
                     break;
                 }
 
@@ -831,9 +838,36 @@ void Executive::revert()
 }
 
 
-void dev::brc::Executive::verfy_authority(uint8_t _authority){
+void dev::brc::Executive::verfy_authority(Authority _authority){
 	 if(!m_authority_weight.verify(_authority))
 	    BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :"+ std::to_string(_authority)));
+}
+
+
+void dev::brc::Executive::verify_control_contract_fun(ContractFun const& _fun){
+	if(m_authority_weight.m_is_super)
+		return;
+	auto signs = m_t.sign_structs();
+	auto account_control = m_s.account_controls(m_t.sender());
+	size_t weight = 0;
+	bool is_find = false;
+	for(auto const& pb : signs){
+		if(m_t.sender() == pb.first){
+			return;
+		}
+		if(account_control.count(pb.first)){
+			auto ret =  account_control[pb.first].m_contracts.find(m_t.to());
+            if(ret != account_control[pb.first].m_contracts.end()){
+				auto ret_1 = ret->second.find(_fun);
+                if(ret_1 != ret->second.end()){
+					is_find = true;
+					weight += ret_1->second;
+				}
+			}
+		}
+	}
+    if(is_find && weight < MAXWEIGHT)
+		BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(Execute_contract)));
 }
 
 void dev::brc::Executive::setCallParameters(Address const& _senderAddress,

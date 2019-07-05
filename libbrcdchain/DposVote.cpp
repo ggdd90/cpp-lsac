@@ -134,7 +134,7 @@ void dev::brc::DposVote::verifyVote(Address const& _from, std::vector<std::share
 
         // verify authority
 		Authority_type a_type = get_authority_type(dType);
-		if(au_weight.verify(a_type))
+		if(!au_weight.verify(a_type))
 			BOOST_THROW_EXCEPTION(PermissionFiled() << errinfo_comment(" Insufficient permissions for this operation :" + std::to_string(a_type)));
 
 		switch(dType){

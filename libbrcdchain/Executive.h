@@ -192,8 +192,9 @@ public:
     void revert();
 
 private:
-	void verfy_authority(uint8_t _authority);
+	void verfy_authority(Authority _authority);
 	bytes get_contract_fun_name_hash(bytes const& _b) { return sha3(_b).ref().cropped(0, 4).toBytes(); }
+	void verify_control_contract_fun(ContractFun const& _fun);
 
 private:
 	const u256 c_min_price = 5;

@@ -74,7 +74,7 @@ void dev::brc::Account::addBlockRewardRecoding(std::pair<u256, u256> _pair)
 }
 
 
-void dev::brc::Account::set_control_account(Address const& _pk, uint8_t authority, uint8_t weight){
+void dev::brc::Account::set_control_account(Address const& _pk, Authority authority, Weight weight){
 	if(m_account_control.count(_pk)){
 		m_account_control[_pk].set_authority_weight(authority, weight);
 	}
@@ -87,17 +87,22 @@ void dev::brc::Account::set_control_account(Address const& _pk, uint8_t authorit
 }
 
 
-void dev::brc::Account::set_control_account_contract_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, uint8_t weight){
+void dev::brc::Account::set_control_account_contract_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun, Weight weight){
 	if(m_account_control.count(_pk))
 		return;
 	if(!m_account_control[_pk].m_contracts.count(contract_addr))
-		m_account_control[_pk].m_contracts[contract_addr] = std::map<ContractFun, uint8_t>();
+		m_account_control[_pk].m_contracts[contract_addr] = std::map<ContractFun, Weight>();
 	m_account_control[_pk].m_contracts[contract_addr][contract_fun] = weight;
+    if(weight ==0){
+		m_account_control[_pk].m_contracts[contract_addr].erase(contract_fun);
+		if(m_account_control[_pk].m_contracts[contract_addr].empty())
+			m_account_control[_pk].m_contracts.erase(contract_addr);
+	}
 	changed();
 }
 
-std::pair<uint8_t, uint8_t> dev::brc::Account::accountControl(Address const& _pk, uint8_t authority) const{
-	std::pair<uint8_t, uint8_t> _pair = std::make_pair(authority, 0);
+std::pair<Authority, Weight> dev::brc::Account::accountControl(Address const& _pk, Authority authority) const{
+	std::pair<Authority, Weight> _pair = std::make_pair(authority, 0);
 	auto ret = m_account_control.find(_pk);
     if(ret == m_account_control.end())
 		return _pair;
@@ -109,8 +114,8 @@ std::pair<uint8_t, uint8_t> dev::brc::Account::accountControl(Address const& _pk
 }
 
 
-std::pair<bool, uint8_t> dev::brc::Account::control_account_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun) const{
-	std::pair<bool, uint8_t> _pair = std::make_pair(false, 0);
+std::pair<bool, Weight> dev::brc::Account::control_account_fun(Address const& _pk, Address const& contract_addr, ContractFun const& contract_fun) const{
+	std::pair<bool, Weight> _pair = std::make_pair(false, 0);
 	auto ret = m_account_control.find(_pk);
 	if(ret == m_account_control.end())
 		return _pair;
