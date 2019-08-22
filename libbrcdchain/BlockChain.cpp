@@ -852,8 +852,6 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
     };
 
     //check node down
-    {
-
 
         std::vector<PollData> exe_miners;
         std::vector<PollData> standby_miners;
@@ -894,8 +892,6 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
 //                BOOST_THROW_EXCEPTION(InvalidMinner() << errinfo_wrongAddress(dev::toString(_block.info.author())));
 //            }
         }
-
-    }
 
 //    cwarn << "insert -----------------";
 //    print_route(m_cached_blocks);
@@ -952,17 +948,9 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
             //this switch chain on one SysVarlitor dont create one block.
             if(_block.info.parentHash() == info().parentHash()){
                 cwarn << " check miner online , will switch chain.11111111111111111";
-                Block s(*this, _db, _exdb);
-                s.populateFromChain(*this, currentHash());
-
-                State &state_db = s.mutableState();
-                auto exe_miners = state_db.vote_data(SysVarlitorAddress);           //21
-                auto standby_miners = state_db.vote_data(SysCanlitorAddress);       //30
-                assert(exe_miners.size() != 0);
-                assert(standby_miners.size() != 0);
-                cwarn << " check miner online , will switch chain. before";
                 if(exe_miners.end() != std::find(exe_miners.begin(), exe_miners.end(), info().author())){
                     cwarn << " check miner online , will switch chain.22222222222";
+                    return false;
                 }
                 else if( standby_miners.end() != std::find(standby_miners.begin(), standby_miners.end(), info().author())
                          && exe_miners.end() != std::find(exe_miners.begin(), exe_miners.end(), _block.info.author())){
