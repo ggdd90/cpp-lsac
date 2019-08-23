@@ -74,7 +74,7 @@ namespace dev {
                                 auto remove_id = begin->trxid;
                                 begin++;
                                 if(!reset){
-                                    add_resultOrder(ret);
+                                    //add_resultOrder(ret);
                                     remove_exchangeOrder(remove_id);
                                 }
 
@@ -87,7 +87,7 @@ namespace dev {
                                 result.push_back(ret);
 
                                 if(!reset){
-                                    add_resultOrder(ret);
+                                    //add_resultOrder(ret);
                                     auto data_update = *begin;
                                     data_update.token_amount -= can_buy_amount;
                                     add_exchangeOrder(data_update);
@@ -108,7 +108,7 @@ namespace dev {
                     auto find_itr = get_sell_itr(itr.token_type, u256(0));
                     auto begin = find_itr.first;
                     auto end = find_itr.second;
-                    auto total_amount = itr.price;
+                    auto total_amount = itr.token_amount;
                     if (begin != end) {
                         while (total_amount > 0 && begin != end) {
                             result_order ret;
@@ -136,7 +136,7 @@ namespace dev {
                                     remove_exchangeOrder(remove_id);
                                 }
                             }
-                            add_resultOrder(ret);
+                            //add_resultOrder(ret);
                         }
                     } else {
                         BOOST_THROW_EXCEPTION(all_price_operation_error());
@@ -180,7 +180,7 @@ namespace dev {
                 }
                 ret.old_price = price;
 
-                add_resultOrder(ret);
+                //add_resultOrder(ret);
 
                 result.push_back(ret);
 
@@ -242,8 +242,8 @@ namespace dev {
         }
 
         void ExdbState::add_resultOrder(const dev::brc::result_order &od) {
-            cdebug << "will add_resultOrder " << od.format_string();
-            m_state.addSuccessExchange(od);
+            //cdebug << "will add_resultOrder " << od.format_string();
+           // m_state.addSuccessExchange(od);
         }
 
         std::vector<exchange_order> ExdbState::get_order_by_address(const Address &addr, uint32_t size) const {
