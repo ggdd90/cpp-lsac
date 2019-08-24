@@ -80,6 +80,7 @@ void BrcdChainPeer::requestStatus(
 void BrcdChainPeer::requestLatestStatus(){
 
     RLPStream s;
+    setAsking(Asking::State);
     m_host->prep(m_id, c_brcCapability, s, GetLatestStatus, 0);
     m_host->sealAndSend(m_id, s);
 }
