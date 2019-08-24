@@ -57,6 +57,7 @@ public:
 
     void requestStatus(u256 _hostNetworkId, u256 _chainTotalDifficulty, h256 _chainCurrentHash, h256 _chainGenesPeersh, u256 height);
 
+    void requestLatestStatus();
     /// Request hashes for given parent hash.
     void requestBlockHeaders(
         h256 const& _startHash, unsigned _count, unsigned _skip, bool _reverse);

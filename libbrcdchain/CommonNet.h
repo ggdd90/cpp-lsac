@@ -42,7 +42,7 @@ enum SubprotocolPacketType: byte
     NodeDataPacket = 0x0e,
     GetReceiptsPacket = 0x0f,
     ReceiptsPacket = 0x10,
-
+    GetLatestStatus = 0x11,
     PacketCount
 };
 

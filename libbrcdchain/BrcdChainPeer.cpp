@@ -77,6 +77,13 @@ void BrcdChainPeer::requestStatus(
     m_host->sealAndSend(m_id, s);
 }
 
+void BrcdChainPeer::requestLatestStatus(){
+
+    RLPStream s;
+    m_host->prep(m_id, c_brcCapability, s, GetLatestStatus, 0);
+    m_host->sealAndSend(m_id, s);
+}
+
 void BrcdChainPeer::requestBlockHeaders(
     unsigned _startNumber, unsigned _count, unsigned _skip, bool _reverse)
 {

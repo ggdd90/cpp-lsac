@@ -240,10 +240,11 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
 
 
     if(peer_block_number < last_block_num){
-        LOG(m_loggerDetail) << "peer height < self " << _peerID << "  height " << last_block_num;
+        LOG(m_loggerDetail) << "peer height < self " << _peerID << "  height " << last_block_num << " peer height " << peer_block_number;
+        peer.requestLatestStatus();
         return ;
     }
-    
+
     bool ignore_sync = false;
     if(height != 0 ){
         auto latest_block = host().chain().info().timestamp();

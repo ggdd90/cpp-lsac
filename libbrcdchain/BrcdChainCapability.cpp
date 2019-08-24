@@ -932,6 +932,12 @@ bool BrcdChainCapability::interpretCapabilityPacket(
             }
             break;
         }
+        case GetLatestStatus:
+        {
+            peer.requestStatus(m_networkId, m_chain.details().totalDifficulty, m_chain.currentHash(),
+                               m_chain.genesisHash(), m_chain.details().number);
+            break;
+        }
         default:
             return false;
         }
