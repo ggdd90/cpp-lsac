@@ -252,6 +252,8 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
             int64_t time_offset = (peer_block_number - height) * host().chain().chainParams().blockInterval;
             if(latest_block + time_offset > utcTimeMilliSec()){
                 ignore_sync = true;
+                LOG(m_loggerDetail) << "ignore sync "  << _peerID << " self height " << height  << " peer height " << peer_block_number
+                                                         << "  last import h: " << last_block_num;
             }
         }
     }
