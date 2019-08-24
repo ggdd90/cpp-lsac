@@ -222,7 +222,9 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
 {
     if (m_host.peer(_peerID).isConversing())
     {
-        LOG(m_loggerDetail) << "Can't sync with this peer - outstanding asks.";
+        LOG(m_loggerDetail) << "Can't sync with this peer - outstanding asks."
+                            << "ask state " << ::toString(m_host.peer(_peerID).asking());
+                            << "ask state " << ::toString(m_host.peer(_peerID).latestHash());
         return;
     }
 
