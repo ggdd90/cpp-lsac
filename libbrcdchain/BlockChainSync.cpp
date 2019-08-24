@@ -237,15 +237,22 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
     auto& peer = m_host.peer(_peerID);
     uint32_t  peer_block_number = (uint32_t)peer.block_number();
 
-    if(peer_block_number == UINT32_MAX){
-        return;
+
+    bool ignore_sync = false;
+    if(height != 0 ){
+        auto latest_block = host().chain().info().timestamp();
+        if(peer_block_number > height){
+            int64_t time_offset = (peer_block_number - height) * host().chain().chainParams().blockInterval;
+            if(latest_block + time_offset > utcTimeMilliSec()){
+                ignore_sync = true;
+            }
+        }
     }
 
-
-    if( (_force || std::max(height, last_block_num)  < peer_block_number ) && m_state != SyncState::Blocks){
+    if( (_force || std::max(height, last_block_num)  < peer_block_number ) && m_state != SyncState::Blocks && !ignore_sync){
         if(m_state == SyncState::Idle || m_state == SyncState::NotSynced){
             LOG(m_loggerInfo) << "Starting full sync from " << _peerID << " self height " << height  << " peer height " << peer_block_number
-            << "  last import h: " << last_block_num;
+                              << "  last import h: " << last_block_num;
             m_state = SyncState::Blocks;
         }
         peer.requestBlockHeaders(peer.latestHash(), 1, 0, false);
