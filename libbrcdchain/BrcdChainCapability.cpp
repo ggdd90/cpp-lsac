@@ -44,6 +44,8 @@ string toString(Asking _a)
         return "WarpManifest";
     case Asking::WarpData:
         return "WarpData";
+     case Asking::UpdateStatus:
+            return "UpdateStatus";
     }
     return "?";
 }
@@ -934,10 +936,31 @@ bool BrcdChainCapability::interpretCapabilityPacket(
         }
         case GetLatestStatus:
         {
-            peer.requestStatus(m_networkId, m_chain.details().totalDifficulty, m_chain.currentHash(),
-                               m_chain.genesisHash(), m_chain.details().number);
+            RLPStream s;
+            m_host->prep(_peerID, name(), s, UpdateStatus, 6)
+                    << c_protocolVersion << m_networkId << m_chain.details().totalDifficulty << m_chain.currentHash()
+                    << m_chain.genesisHash() << m_chain.details().number;
+            m_host->sealAndSend(_peerID, s);
             break;
         }
+        case UpdateStatus:{
+
+            auto const peerProtocolVersion = _r[0].toInt<unsigned>();
+            auto const networkId = _r[1].toInt<u256>();
+            auto const totalDifficulty = _r[2].toInt<u256>();
+            auto const latestHash = _r[3].toHash<h256>();
+            auto const genesisHash = _r[4].toHash<h256>();
+            auto const height = _r[5].toInt<u256>();
+
+            LOG(m_logger) << "update status Status: " << peerProtocolVersion << " / " << networkId << " / "
+                          << genesisHash << ", TD: " << totalDifficulty << " = " << latestHash << " height : " << height;
+
+            peer.setStatus(peerProtocolVersion, networkId, totalDifficulty, latestHash, genesisHash, height);
+            setIdle(_peerID);
+            m_sync->restartSync();
+
+            break;
+        };
         default:
             return false;
         }
