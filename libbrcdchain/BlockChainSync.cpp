@@ -204,6 +204,9 @@ void BlockChainSync::onPeerStatus(BrcdChainPeer const& _peer)
         // DAO challenge not needed
         syncPeer(_peer.id(), false);
     }
+    else{
+        LOG(m_logger) << "cant sync block by daofor block headder.";
+    }
 }
 
 bool BlockChainSync::requestDaoForkBlockHeader(NodeID const& _peerID)
@@ -228,8 +231,10 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
         return;
     }
 
-    if (m_state == SyncState::Waiting)
+    if (m_state == SyncState::Waiting){
+        LOG(m_loggerDetail)  << "waiting ....";
         return;
+    }
 
 
 
@@ -463,7 +468,7 @@ void BlockChainSync::onPeerBlockHeaders(NodeID const& _peerID, RLP const& _r)
     clearPeerDownload(_peerID);
     if (m_state != SyncState::Blocks && m_state != SyncState::Waiting)
     {
-        LOG(m_logger) << "Ignoring unexpected blocks";
+        LOG(m_logger) << "Ignoring unexpected blocks " << (int32_t)m_state.load();
         return;
     }
     if (m_state == SyncState::Waiting)

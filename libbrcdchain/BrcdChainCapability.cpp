@@ -957,8 +957,8 @@ bool BrcdChainCapability::interpretCapabilityPacket(
 
             peer.setStatus(peerProtocolVersion, networkId, totalDifficulty, latestHash, genesisHash, height);
             setIdle(_peerID);
-            m_sync->restartSync();
-
+            m_peerObserver->onPeerStatus(peer);
+            LOG(m_logger) << " continue sync blocks.";
             break;
         };
         default:
