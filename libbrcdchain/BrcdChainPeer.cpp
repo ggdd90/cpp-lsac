@@ -31,6 +31,8 @@ string toString(Asking _a)
         return "WarpManifest";
     case Asking::WarpData:
         return "WarpData";
+    case Asking::UpdateStatus:
+        return "UpdateStatus";
     }
     return "?";
 }

@@ -241,7 +241,7 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
 
 
 
-    if(peer_block_number < last_block_num){
+    if(peer_block_number < last_block_num && m_state == SyncState::Blocks){
         LOG(m_loggerDetail) << "peer height < self " << _peerID << "  height " << last_block_num << " peer height " << peer_block_number;
         peer.requestLatestStatus();
         return ;
