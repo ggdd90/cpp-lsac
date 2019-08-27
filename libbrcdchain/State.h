@@ -125,7 +125,8 @@ struct Change
         MinnerSnapshot,
         ReceiveCookies,
         UpExOrder,
-        SuccessOrder
+        SuccessOrder,
+        ChangeMiner
     };
 
     Kind kind;        ///< The kind of the change.
@@ -145,6 +146,7 @@ struct Change
     ReceivedCookies received;
     dev::brc::ex::ExOrderMulti ex_multi;
     dev::brc::ex::ExResultOrder ret_orders;
+    Account old_account;
 
     /// Helper constructor to make change log update more readable.
     Change(Kind _kind, Address const& _addr, u256 const& _value = 0)
@@ -211,6 +213,11 @@ struct Change
     Change(Kind _kind, Address const& _addr, dev::brc::ex::ExResultOrder const& result_orders) :kind(_kind), address(_addr)
     {
         ret_orders =result_orders;
+    }
+    Change(Kind _kind, Address const& _addr, Account const& _account) :kind(_kind), address(_addr)
+    {
+        old_account.kill();
+        old_account.copyByAccount(_account);
     }
 };
 
@@ -452,7 +459,6 @@ public:
     void addSuccessExchange(dev::brc::ex::result_order const& _order);
     void setSuccessExchange(dev::brc::ex::ExResultOrder const& _exresultOrder);
     dev::brc::ex::ExResultOrder const& getSuccessExchange();
-
   
 private:
     void addSysVoteDate(Address const& _sysAddress, Address const& _id);
@@ -462,6 +468,9 @@ private:
     void add_vote(Address const& _id, PollData const& p_data);
     void sub_vote(Address const& _id, PollData const& p_data);
     const PollData poll_data(Address const& _addr, Address const& _recv_addr) const;
+
+    ///interface about change
+    void changeMinerMigrationData(Address const& before_addr, Address const& new_addr, ChainParams const& params);
 
 public:
     void transferBallotBuy(Address const& _from, u256 const& _value);
@@ -579,6 +588,8 @@ public:
 
     /// try into new rounds if into: will statistical_poll and sort varlitor
     void try_newrounds_count_vote(BlockHeader const& curr_header, BlockHeader const& previous_header);
+    /// change miner
+    void tryChangeMiner(BlockHeader const &curr_header, ChainParams const& params);
 
     /// get the miner sanpshot
     std::map<u256, std::vector<PollData>> get_miner_snapshot() const;

@@ -9,6 +9,8 @@
 #include <boost/filesystem/path.hpp>
 #include <brc/objects.hpp>
 
+#include <libdevcore/Log.h>
+
 
 namespace dev
 {
@@ -580,11 +582,127 @@ public:
         m_nonce(_nonce),
         m_balance(_balance),
         m_storageRoot(_contractRoot),
-        m_codeHash(_codeHash)
-    {
-        assert(_contractRoot);
+        m_codeHash(_codeHash) {
+     assert(_contractRoot);
+ }
+    void copyByAccount(Account const& ac){
+        m_isAlive = ac.m_isAlive;
+        m_isUnchanged = ac.m_isUnchanged;
+        m_hasNewCode = ac.m_hasNewCode;
+        m_nonce = ac.m_nonce;
+        m_balance = ac.m_balance;
+        m_storageRoot = ac.m_storageRoot;
+        m_codeHash = ac.m_codeHash;
+        m_ballot = ac.m_ballot;
+        m_poll = ac.m_poll;
+        m_BRC = ac.m_BRC;
+        m_FBRC = ac.m_FBRC;
+        m_FBalance = ac.m_FBalance;
+        m_CooikeIncomeNum = ac.m_CooikeIncomeNum;
+        m_codeCache = ac.m_codeCache;
+        m_willChangeList = ac.m_willChangeList;
+        m_vote_data = ac.m_vote_data;
+        m_vote_sapshot = ac.m_vote_sapshot;
+        m_couplingSystemFee = ac.m_couplingSystemFee;
+        m_received_cookies = ac.m_received_cookies;
+        m_BlockReward = ac.m_BlockReward;
+        m_successExchange = ac.m_successExchange;
+        m_exChangeOrder = ac.m_exChangeOrder;
+        m_storageOverlay = ac.m_storageOverlay;
+        m_storageOriginal = ac.m_storageOriginal;
+        m_block_records = ac.m_block_records;
     }
 
+    void changeMinerUpdateData(Address const& old_addr, Address const& new_addr){
+        auto vote_ret = std::find(m_vote_data.begin(), m_vote_data.end(), old_addr);
+        if (vote_ret != m_vote_data.end()){
+            vote_ret->m_addr = new_addr;
+            changed();
+        }
+        /// m_vote_sapshot
+        for(auto &s : m_vote_sapshot.m_voteDataHistory){
+            auto ret = s.second.find(old_addr);
+            if (ret != s.second.end()){
+                u256 temp = ret->second;
+                s.second.erase(ret);
+                s.second[new_addr] = ret->second;
+                changed();
+            }
+        }
+        /// m_couplingSystemFee
+        {
+            for(auto &v : m_couplingSystemFee.m_sorted_creaters){
+                auto ret =std::find(v.second.begin(), v.second.end(), old_addr);
+                if (ret != v.second.end()){
+                    ret->m_addr = new_addr;
+                }
+            }
+           for(auto &v : m_couplingSystemFee.m_received_cookies){
+               auto ret = v.second.find(old_addr);
+               if(ret != v.second.end()){
+                   std::pair<u256,u256> _pair = ret->second;
+                   v.second.erase(ret);
+                   v.second[new_addr] = _pair;
+                   changed();
+               }
+           }
+        }
+        /// m_received_cookies
+        for(auto &v : m_received_cookies.m_received_cookies){
+            auto ret = v.second.find(old_addr);
+            if(ret != v.second.end()){
+                std::pair<u256,u256> _pair = ret->second;
+                v.second.erase(ret);
+                v.second[new_addr] = _pair;
+                changed();
+            }
+        }
+        /// m_block_records
+        auto ret = m_block_records.m_last_time.find(old_addr);
+        if (ret != m_block_records.m_last_time.end()){
+            int64_t temp =0;
+            m_block_records.m_last_time.erase(ret);
+            m_block_records.m_last_time[new_addr] = temp;
+            changed();
+        }
+    }
+
+    bool isChangeMinerUpdateData(Address const& old_addr, Address const& new_addr) const{
+        if (std::find(m_vote_data.begin(), m_vote_data.end(), old_addr) != m_vote_data.end()){
+            return true;
+        }
+        /// m_vote_sapshot
+        for(auto &s : m_vote_sapshot.m_voteDataHistory){
+            if (s.second.find(old_addr) != s.second.end()){
+                return true;
+            }
+        }
+        /// m_couplingSystemFee
+        {
+            for(auto &v : m_couplingSystemFee.m_sorted_creaters){
+                if(std::find(v.second.begin(), v.second.end(), old_addr) !=  v.second.end()){
+                    return true;
+                }
+            }
+            for(auto &v : m_couplingSystemFee.m_received_cookies){
+                if(v.second.find(old_addr) != v.second.end()){
+                    return true;
+                }
+            }
+        }
+        /// m_received_cookies
+        for(auto &v : m_received_cookies.m_received_cookies){
+            if(v.second.find(old_addr) != v.second.end()){
+                return true;
+            }
+        }
+        /// m_block_records
+        if (m_block_records.m_last_time.find(old_addr) != m_block_records.m_last_time.end()){
+            return true;
+        }
+
+        return false;
+    }
 
     /// Kill this account. Useful for the suicide opcode. Following this call, isAlive() returns
     /// false.
@@ -604,6 +722,11 @@ public:
         m_ballot = 0;
         m_willChangeList.clear();
 		m_BlockReward.clear();
+        m_couplingSystemFee.clear();
+        m_vote_sapshot.clear();
+        m_received_cookies.clear();
+        m_exChangeOrder.clear();
+        m_successExchange.clear();
         changed();
     }
 
@@ -635,8 +758,15 @@ public:
     u256 const& FBRC() const { return m_FBRC; }
 
     u256 const& FBalance() const { return m_FBalance; }
-    std::vector<std::string> willChangeList() const { return m_willChangeList; }
-    std::vector<std::string>& changeList() { return m_willChangeList; }
+
+    std::vector<std::string>const& willChangeList() const { return m_willChangeList; }
+    void removeChangeList(std::string const& _change){
+        auto ret = find(m_willChangeList.begin(), m_willChangeList.end(), _change);
+        if(ret != m_willChangeList.end()){
+            m_willChangeList.erase(ret);
+            changed();
+        }
+    }
 
     /// Increments the balance of this account by the given amount.
     void addBalance(u256 _value)
@@ -936,6 +1066,7 @@ public:
             m_successExchange.insert(order);
         }
     }
+
 private:
     /// Is this account existant? If not, it represents a deleted account.
     bool m_isAlive = false;
@@ -950,7 +1081,6 @@ private:
     /// Account's nonce.
     u256 m_nonce;
 
-
     /// Account's balance.
     u256 m_balance = 0;
 
@@ -964,46 +1094,28 @@ private:
      * otherwise, State::ensureCached() needs to be called with the correct args.
      */
     h256 m_codeHash = EmptySHA3;
-
     // 自己拥有的票数 可以投给竞选节点的票数
     u256 m_ballot = 0;
-
     // 在投票开启中自己的得到的票数 不能使用
     u256 m_poll = 0;
-
 	// Account's BRC
     u256 m_BRC = 0;
-
     // Account's FBRC
     u256 m_FBRC = 0;
     u256 m_FBalance = 0;
-
 	// Summary of the proceeds from the block address itself
 	u256 m_CooikeIncomeNum = 0;
-
     std::vector<std::string> m_willChangeList;
-
     /// poll_data
     /// if this not is systemAddress : the address vote to other
     /// if this is systemAddress : this storage candidates_data or Varlitor ...
     std::vector<PollData> m_vote_data;
-
     // The snapshot about voteData
     VoteSnapshot    m_vote_sapshot;
-
     CouplingSystemfee m_couplingSystemFee;
-
     ReceivedCookies m_received_cookies;
-
     std::vector<std::pair<u256, u256>> m_BlockReward;
 
-
-//    std::unordered_map<h256, dev::brc::ex::order> m_buyExchange;
-//    std::unordered_map<h256, dev::brc::ex::order> m_sellExchange;
-
-
-//    std::unordered_map<h256, dev::brc::ex::result_order> m_successExchange;s
-//    std::vector<dev::brc::ex::result_order> m_successExchange;
     dev::brc::ex::ExResultOrder m_successExchange;
     dev::brc::ex::ExOrderMulti m_exChangeOrder;
 

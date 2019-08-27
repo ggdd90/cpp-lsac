@@ -644,6 +644,9 @@ void State::pendingOrder(Address const& _addr, u256 _pendingOrderNum, u256 _pend
 void dev::brc::State::changeMiner(std::vector<std::shared_ptr<transationTool::operation>> const& _ops){
 	std::shared_ptr<transationTool::changeMiner_operation> pen = std::dynamic_pointer_cast<transationTool::changeMiner_operation>(_ops[0]);
     Account *a = account(SysVarlitorAddress);
+    if(!a){
+
+    }
     a->insertMiner(pen->m_before, pen->m_after, pen->m_blockNumber);
         
 	
@@ -1881,6 +1884,10 @@ void State::rollback(size_t _savepoint) {
             case Change::SuccessOrder:
                 account.setSuccessOrder(change.ret_orders);
                 break;
+            case Change::ChangeMiner:
+                account.kill();
+                account.copyByAccount(change.old_account);
+                break;
             default:
                 break;
         }
@@ -2603,6 +2610,46 @@ void dev::brc::State::setSuccessExchange(dev::brc::ex::ExResultOrder const& _exr
     _orderAccount->setSuccessOrder(_exresultOrder);
     m_changeLog.emplace_back(Change::SuccessOrder, dev::ExdbSystemAddress, _oldOrder);
 }
+
+void dev::brc::State::tryChangeMiner(const dev::brc::BlockHeader &curr_header, ChainParams const& params) {
+    auto change_ret = config::getChainMiner(curr_header.number());
+    if(!change_ret.first)
+        return;
+    changeMinerMigrationData(Address(change_ret.second.before_addr), Address(change_ret.second.new_addr), params);
+}
+
+void dev::brc::State::changeMinerMigrationData(const dev::Address &before_addr, const dev::Address &new_addr, ChainParams const& params) {
+    Account* old_a = account(before_addr);
+    if (!old_a){
+        // throw
+        BOOST_THROW_EXCEPTION(InvalidAutor() << errinfo_comment(std::string("changeMiner: not have this author:"+ dev::toString(before_addr))));
+    }
+    Account* new_a = account(new_addr);
+    if (!new_a){
+        createAccount(new_addr, {0});
+        new_a = account(new_addr);
+    }
+    else{
+        kill(new_addr);
+    }
+    /// account's base data
+    new_a->copyByAccount(*old_a);
+    new_a->changeMinerUpdateData(before_addr, new_addr);
+    old_a->kill();
+    /// loop all
+    /// system sanpshot data
+    /// other account vote data in genesis
+    for(auto const& v: params.genesisState){
+        if (!v.second.isChangeMinerUpdateData(before_addr, new_addr))
+            continue;
+        Account *temp_a = account(v.first);
+        if (!temp_a)
+            continue;
+        //cwarn << "will update change data:"<< v.first << " old_addr:"<< before_addr << " new:"<< new_addr;
+        temp_a->changeMinerUpdateData(before_addr, new_addr);
+    }
+}
+
 
 dev::brc::ex::ExResultOrder const& dev::brc::State::getSuccessExchange()
 {

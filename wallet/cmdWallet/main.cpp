@@ -236,7 +236,7 @@ bool sign_trx_from_json(const bfs1::path &path, bool _is_send, std::string _ip =
 						}
                         case receivingincome:{
 							auto receivingincome_op = new receivingincome_operation( (op_type)type,
-							            1,
+                                                                                     (uint8_t) op_obj["m_receivingType"].get_int(),
 							            Address(op_obj["m_from"].get_str())
                                                                               );
                             tx.ops.push_back(std::shared_ptr<receivingincome_operation>(receivingincome_op));
@@ -408,6 +408,7 @@ int main(int argc, char *argv[]) {
             nonce = (size_t) args_map["nonce"].as<int>();
         }
         if (args_map.count("generate-key")) {
+            for(int i=0; i<51; i++)
             generate_key(args_map["generate-key"].as<std::string>());
         }
 

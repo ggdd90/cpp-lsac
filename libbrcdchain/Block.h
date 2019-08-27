@@ -303,10 +303,12 @@ public:
 	/// this called after excuted transactions
 	void execute_block_record(BlockHeader const& curr_info);
 
-    /// try into new rounds
-    /// do: record snapshot minner_rank and sort new
-    void try_into_new_rounds(BlockHeader const& curr_info, BlockHeader const& previous_info){
+    /// into new block todo something
+    void intoNewBlockToDo(BlockHeader const& curr_info, BlockHeader const& previous_info, ChainParams const& params){
+        ///try into new rounds  record snapshot minner_rank and sort new
         m_state.try_newrounds_count_vote(curr_info, previous_info);
+        /// change miner for point height
+        m_state.tryChangeMiner(curr_info, params);
     }
 
 private:
@@ -322,8 +324,6 @@ private:
     /// Finalise the block, applying the earned rewards.
     void applyRewards(std::vector<BlockHeader> const& _uncleBlockHeaders, u256 const& _blockReward);
 
-    //update  miner
-    void update_miner();
     /// @returns gas used by transactions thus far executed.
     u256 gasUsed() const { return m_receipts.size() ? m_receipts.back().cumulativeGasUsed() : 0; }
 
