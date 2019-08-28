@@ -720,6 +720,7 @@ void BrcdChainCapability::onTransactionImported(
 
 void BrcdChainCapability::onConnect(NodeID const& _peerID, u256 const& _peerCapabilityVersion)
 {
+    LOG(m_logger) << "on connect " << _peerID << " version : " << _peerCapabilityVersion;
     m_host->addNote(_peerID, "manners", m_host->isRude(_peerID, name()) ? "RUDE" : "nice");
 
     BrcdChainPeer peer{m_host, _peerID, _peerCapabilityVersion};
@@ -986,8 +987,11 @@ void BrcdChainCapability::setIdle(NodeID const& _peerID)
 void BrcdChainCapability::setAsking(NodeID const& _peerID, Asking _a)
 {
     auto itPeerStatus = m_peers.find(_peerID);
-    if (itPeerStatus == m_peers.end())
+    if (itPeerStatus == m_peers.end()){
+        LOG(m_logger) << "cant find peer " << _peerID;
         return;
+    }
+
 
     auto& peerStatus = itPeerStatus->second;
 
