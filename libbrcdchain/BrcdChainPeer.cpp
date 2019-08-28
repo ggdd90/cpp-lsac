@@ -83,7 +83,7 @@ void BrcdChainPeer::requestLatestStatus(){
 
     RLPStream s;
     setAsking(Asking::UpdateStatus);
-    LOG(m_logger) << "requestLatestStatus  " << ::toString(m_asking);
+    LOG(m_logger) << "requestLatestStatus  " << ::toString(m_asking) << "  m_id: " << m_id;
     m_host->prep(m_id, c_brcCapability, s, GetLatestStatus, 0);
     m_host->sealAndSend(m_id, s);
 }
