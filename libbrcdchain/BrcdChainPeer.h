@@ -75,8 +75,8 @@ public:
     uint32_t get_request_zero_times() const { return  m_request_zero_times;}
     void set_request_zero_times(uint32_t r ) { m_request_zero_times = r;};
 
-    void set_last_request_number(uint32_t r ) { m_last_request_number = r;}
-    uint32_t get_last_request_number() const { return m_last_request_number;}
+    void set_last_request_times(uint32_t r ) { m_last_request_times = r;}
+    uint32_t get_last_request_times() const { return m_last_request_times;}
 private:
     // Request of type _packetType with _hashes as input parameters
     void requestByHashes(h256s const& _hashes, Asking _asking, SubprotocolPacketType _packetType);
@@ -109,8 +109,11 @@ private:
     unsigned m_unknownNewBlocks = 0;  ///< Number of unknown NewBlocks received from this peer
     unsigned m_lastAskedHeaders = 0;  ///< Number of hashes asked
 
+
+
+
     uint32_t  m_request_zero_times = 0;
-    uint32_t  m_last_request_number = 0;        /// < request last block_header number.
+    uint32_t  m_last_request_times = 0;        /// < request last block_header number.
     Logger m_logger{createLogger(VerbosityDebug, "peer")};
 };
 }  // namespace brc

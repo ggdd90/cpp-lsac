@@ -248,8 +248,15 @@ void BlockChainSync::syncPeer(NodeID const& _peerID, bool _force)
 
 
     if(peer_block_number < last_block_num && m_state == SyncState::Blocks){
-        LOG(m_loggerDetail) << "peer height < self " << _peerID << "  height " << last_block_num << " peer height " << peer_block_number;
-        peer.requestLatestStatus();
+        if(peer.get_last_request_times() > 5){
+            peer.set_last_request_times(0);
+            m_host.capabilityHost().disconnect(_peerID, p2p::DisconnectReason::UserReason);
+        }
+        else{
+            LOG(m_loggerDetail) << "peer height < self " << _peerID << "  height " << last_block_num << " peer height " << peer_block_number;
+            peer.requestLatestStatus();
+            peer.set_last_request_times(peer.get_last_request_times() + 1);
+        }
         return ;
     }
 
