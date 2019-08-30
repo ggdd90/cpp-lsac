@@ -687,6 +687,8 @@ BlockChain::import(VerifiedBlockRef const &_block, OverlayDB const &_db, ex::exc
 
     std::vector<std::list<VerifiedBlockRef>> copy_data;
 
+
+    LOG(m_logger) << "write complete remove_hash find";
     DEV_READ_GUARDED(x_cached_blocks)
     for(auto &itr : m_cached_blocks){
         ///every list, max size  <= m_params.config_blocks
@@ -721,6 +723,7 @@ BlockChain::import(VerifiedBlockRef const &_block, OverlayDB const &_db, ex::exc
     m_cached_blocks = copy_data;
 
     //remove unused hash and bytes.
+    LOG(m_logger) << "write complete remove_hash";
     std::vector<h256> remove_hash;
     for(auto &itr : m_cached_bytes){
         bool find = false;
@@ -759,6 +762,7 @@ BlockChain::import(VerifiedBlockRef const &_block, OverlayDB const &_db, ex::exc
     if(info().number() > m_params.config_blocks){
         _exdb.commit_disk(info().number() - m_params.config_blocks + 1);
     }
+    LOG(m_logger) << "write complete end";
     return  ret;
 }
 
@@ -1395,6 +1399,7 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
 
     try {
         m_blocksDB->commit(std::move(blocksWriteBatch));
+        LOG(m_logger) << "write complete blocksWriteBatch";
     }
     catch (boost::exception &ex) {
         cwarn << "Error writing to blockchain database: " << boost::diagnostic_information(ex);
@@ -1404,6 +1409,7 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
 
     try {
         m_extrasDB->commit(std::move(extrasWriteBatch));
+        LOG(m_logger) << "write complete extrasWriteBatch";
     }
     catch (boost::exception &ex) {
         cwarn << "Error writing to extras database: " << boost::diagnostic_information(ex);
@@ -1440,6 +1446,7 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
             m_lastBlockNumber = newLastBlockNumber;
             try {
                 m_extrasDB->insert(db::Slice("best"), db::Slice((char const *) &m_lastBlockHash, 32));
+                LOG(m_logger) << "write complete best";
             }
             catch (boost::exception const &ex) {
                 cwarn << "Error writing to extras database: " << boost::diagnostic_information(ex);
@@ -1483,6 +1490,8 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
             dead.push_back(h);
         else
             fresh.push_back(h);
+
+    LOG(m_logger) << "write complete ImportRoute";
     return ImportRoute{dead, fresh, _block.transactions};
 }
 
