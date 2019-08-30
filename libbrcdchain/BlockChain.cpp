@@ -838,11 +838,11 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
         return false;
     }
 
-//    if (info().number() == 0 || m_cached_blocks.size() == 0) {
-//        DEV_WRITE_GUARDED(x_cached_blocks)
-//        m_cached_blocks.push_back({_block});
-//        return true;
-//    }
+    if (info().number() == 0 || m_cached_blocks.size() == 0) {
+        DEV_WRITE_GUARDED(x_cached_blocks)
+        m_cached_blocks.push_back({_block});
+        return true;
+    }
 
     auto print_route = [](const std::vector<std::list<VerifiedBlockRef>> &data) {
         for (auto itr : data) {
