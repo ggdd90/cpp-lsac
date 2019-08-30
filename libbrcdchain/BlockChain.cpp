@@ -685,85 +685,83 @@ BlockChain::import(VerifiedBlockRef const &_block, OverlayDB const &_db, ex::exc
     }
     auto ret = execute_block(_block, _db, _exdb, _mustBeNew);
 
-//    std::vector<std::list<VerifiedBlockRef>> copy_data;
-//
-//
-//    LOG(m_logger) << "write complete remove_hash find";
-//    DEV_READ_GUARDED(x_cached_blocks)
-//        for(auto &itr : m_cached_blocks){
-//            ///every list, max size  <= m_params.config_blocks
-//
-//
-//            //this chain must in main chain,
-//            if(m_blocksDB->exists(toSlice(itr.front().info.hash()))){
-//                ///pop config_blocks.
-//                while(itr.size() > 0
-//                      && info().number() > m_params.config_blocks
-//                      && info().number() - itr.front().info.number() >= m_params.config_blocks ){
-////                cwarn << "pop " << itr.front().info.number();
-//                    itr.pop_front();
-//                }
-//                ///again check this chain in main chain.
-//                if(itr.size() > 0 && m_blocksDB->exists(toSlice(itr.front().info.hash()))){
-//                    copy_data.push_back(itr);
-//                }
-//                else{
-//                    cwarn << "remove " << itr.front().info.number() << "  h: " << itr.front().info.hash();
-//                }
-//            }
-//            else{
-//                cwarn << "remove " << itr.front().info.number() << "  h: " << itr.front().info.hash();
-//            }
-//
-//            if(itr.size() > m_params.config_blocks){
-//                itr.pop_front();
-//            }
-//        }
-//
-//
-//    m_cached_blocks.clear();
-//    m_cached_blocks = copy_data;
-//
-//    //remove unused hash and bytes.
-//    LOG(m_logger) << "write complete remove_hash";
-//    std::vector<h256> remove_hash;
-//    for(auto &itr : m_cached_bytes){
-//        bool find = false;
-//        for(auto &list : m_cached_blocks){
-//            for(auto &b : list){
-//                if(itr.first == b.info.hash()){
-//                    find = true;
-//                }
-//            }
-//        }
-//        if(!find){
-//            remove_hash.push_back(itr.first);
-//        }
-//    }
-//
-//    for(auto &itr : remove_hash){
-//        m_cached_bytes.erase(itr);
-//    }
-//
-//    auto print_route = [](const std::vector<std::list<VerifiedBlockRef>> &data) {
-//        for (auto itr : data) {
-//            std::ostringstream os;
-//            os << "size : " << itr.size() << "  ";
-//            for (auto detail : itr) {
-//                os << "n: " << std::to_string(detail.info.number()) << " h: " << detail.info.hash().abridged() << " p: "
-//                   << detail.info.parentHash().abridged() << " |";
-//            }
-//            cwarn << os.str();
-//        }
-//    };
-//
-//    if(m_cached_blocks.size() > 2){
-//        cwarn << "config ...............";
-//        print_route(m_cached_blocks);
-//    }
-//    if(info().number() > m_params.config_blocks){
-//        _exdb.commit_disk(info().number() - m_params.config_blocks + 1);
-//    }
+    std::vector<std::list<VerifiedBlockRef>> copy_data;
+
+
+    LOG(m_logger) << "write complete remove_hash find";
+    DEV_READ_GUARDED(x_cached_blocks)
+        for(auto &itr : m_cached_blocks){
+            ///every list, max size  <= m_params.config_blocks
+            //this chain must in main chain,
+            if(m_blocksDB->exists(toSlice(itr.front().info.hash()))){
+                ///pop config_blocks.
+                while(itr.size() > 0
+                      && info().number() > m_params.config_blocks
+                      && info().number() - itr.front().info.number() >= m_params.config_blocks ){
+//                cwarn << "pop " << itr.front().info.number();
+                    itr.pop_front();
+                }
+                ///again check this chain in main chain.
+                if(itr.size() > 0 && m_blocksDB->exists(toSlice(itr.front().info.hash()))){
+                    copy_data.push_back(itr);
+                }
+                else{
+                    cwarn << "remove " << itr.front().info.number() << "  h: " << itr.front().info.hash();
+                }
+            }
+            else{
+                cwarn << "remove " << itr.front().info.number() << "  h: " << itr.front().info.hash();
+            }
+
+            if(itr.size() > m_params.config_blocks){
+                itr.pop_front();
+            }
+        }
+
+
+    m_cached_blocks.clear();
+    m_cached_blocks = copy_data;
+
+    //remove unused hash and bytes.
+    LOG(m_logger) << "write complete remove_hash";
+    std::vector<h256> remove_hash;
+    for(auto &itr : m_cached_bytes){
+        bool find = false;
+        for(auto &list : m_cached_blocks){
+            for(auto &b : list){
+                if(itr.first == b.info.hash()){
+                    find = true;
+                }
+            }
+        }
+        if(!find){
+            remove_hash.push_back(itr.first);
+        }
+    }
+
+    for(auto &itr : remove_hash){
+        m_cached_bytes.erase(itr);
+    }
+
+    auto print_route = [](const std::vector<std::list<VerifiedBlockRef>> &data) {
+        for (auto itr : data) {
+            std::ostringstream os;
+            os << "size : " << itr.size() << "  ";
+            for (auto detail : itr) {
+                os << "n: " << std::to_string(detail.info.number()) << " h: " << detail.info.hash().abridged() << " p: "
+                   << detail.info.parentHash().abridged() << " |";
+            }
+            cwarn << os.str();
+        }
+    };
+
+    if(m_cached_blocks.size() > 2){
+        cwarn << "config ...............";
+        print_route(m_cached_blocks);
+    }
+    if(info().number() > m_params.config_blocks){
+        _exdb.commit_disk(info().number() - m_params.config_blocks + 1);
+    }
     LOG(m_logger) << "write complete end";
     return  ret;
 }
@@ -893,7 +891,7 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
 //            }
     }
 
-
+    return true;
 
 //    cwarn << "insert -----------------";
 //    print_route(m_cached_blocks);
@@ -936,7 +934,7 @@ bool BlockChain::update_cache_fork_database(const dev::brc::VerifiedBlockRef &_b
 //                " author" << _block.info.author() << " parent_hash:"<< _block.info.parentHash();
 //        return false;
 //    }
-    return true;
+
     //this block is true, dont switch chain.
 //    if (_block.info.parentHash() == info().hash()) {
 //        return true;
