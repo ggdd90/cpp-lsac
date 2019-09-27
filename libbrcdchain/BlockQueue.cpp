@@ -98,6 +98,7 @@ void BlockQueue::verifierBody()
             if (!m_verifying.remove(work.hash))
                 cwarn << "Unexpected exception when verifying block: " << _ex.what();
             drainVerified_WITH_BOTH_LOCKS();
+            cerror << "Bad Block!" << _ex.what();
             continue;
         }
 
@@ -179,7 +180,7 @@ ImportResult BlockQueue::import(bytesConstRef _block, bool _isOurs)
     }
 
 
-    LOG(m_loggerDetail) << "Block " << h << " is " << bi.number() << " parent is " << bi.parentHash();
+    LOG(m_loggerDetail) << "Block " << h << " is :" << bi.number() << " parent is :" << bi.parentHash() << " author is:"<< bi.author();
 
     // Check block doesn't already exist first!
     if (m_bc->isKnown(h))

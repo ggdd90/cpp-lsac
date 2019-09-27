@@ -824,7 +824,7 @@ bool Block::sealBlock(bytesConstRef _header) {
         //        BlockHeader(_header, HeaderData).dposContext().printData();
         //        cdebug << BrcYellow << "m_currentBlock _header:";
         //        m_currentBlock.dposContext().printData();
-        //        cwarn << BrcRed " verify BlockHeader hash failed ...";
+                  cwarn << " verify BlockHeader hash failed ...";
         return false;
     }
 

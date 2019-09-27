@@ -97,13 +97,13 @@ void Client::init(p2p::Host& _extNet, fs::path const& _dbPath,
 
     m_lastGetWork = std::chrono::system_clock::now() - chrono::seconds(30);
     m_tqReady = m_tq.onReady([=]() {
+        if(auto h = m_host.lock()){
+            h->noteNewTransactions();
+        }
         this->onTransactionQueueReady();
     });  // TODO: should read m_tq->onReady(thisThread, syncTransactionQueue);
     m_tqReplaced = m_tq.onReplaced([=](h256 const&) { m_needStateReset = true; });
     m_bqReady = m_bq.onReady([=]() {
-        if(auto h = m_host.lock()){
-            h->noteNewTransactions();
-        }
         this->onBlockQueueReady();
     });  // TODO: should read m_bq->onReady(thisThread, syncBlockQueue);
     m_bq.setOnBad([=](Exception& ex) { this->onBadBlock(ex); });
@@ -895,6 +895,7 @@ bool Client::submitSealed(bytes const& _header)
 		//m_bq.clearVerifiedBlocks();
 		//m_working.info().hash();
         BlockHeader _h = BlockHeader(newBlock);
+        cwarn << "seal new block hash"<< _h.hash();
 	}
     // OPTIMISE: very inefficient to not utilise the existing OverlayDB in m_postSeal that contains all trie changes.
     return m_bq.import(&newBlock, true) == ImportResult::Success;

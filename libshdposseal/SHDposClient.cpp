@@ -189,24 +189,30 @@ bool dev::bacd::SHDposClient::verifyVarlitorPrivatrKey(Address const& _addr) con
 
 void dev::bacd::SHDposClient::rejigSealing()
 {
-    if(!m_wouldSeal)
+    //verify block_rounds/seal_block/minner ....
+    if(!isBlockSeal(utcTimeMilliSec()))
+    {
         return;
-	if((wouldSeal() || remoteActive()) && !isMajorSyncing())
+    }
+    if(!m_wouldSeal) {
+        cwarn << "this seted would not to seal block";
+        return;
+    }
+    if(isMajorSyncing()){
+        cwarn << "this syncing can not to seal block";
+        return;
+    }
+
 	{
         if (!verifyVarlitorPrivatrKey()){
             cwarn << "not find private key..";
             return;
         }
 
-        //verify block_rounds/seal_block/minner ....
-        if(!isBlockSeal(utcTimeMilliSec()))
-        {
-            return;
-        }
-
         if (m_is_firt_run){
             m_is_firt_run  = false;
             std::this_thread::sleep_for(std::chrono::milliseconds(2000));  //sleep : wait to sync
+            cwarn << " this is first run and will skip, sleep 2s";
             return;
         }
 
@@ -229,7 +235,7 @@ void dev::bacd::SHDposClient::rejigSealing()
 			{
 				if(m_working.isSealed())
 				{
-					LOG(m_logger) << "Tried to seal sealed block...";
+					LOG(m_logger) << "this time is Sealing... Tried to seal sealed block...";
 					return;
 				}
 
@@ -264,7 +270,8 @@ void dev::bacd::SHDposClient::rejigSealing()
 					else
 						LOG(m_logger) << "Submitting block failed...";
 				});
-				ctrace << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
+				//ctrace << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
+				cwarn << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
 				sealEngine()->generateSeal(m_sealingInfo);
 			}
 		}
