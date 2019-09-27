@@ -895,7 +895,7 @@ bool Client::submitSealed(bytes const& _header)
 		//m_bq.clearVerifiedBlocks();
 		//m_working.info().hash();
         BlockHeader _h = BlockHeader(newBlock);
-        cwarn << "seal new block hash"<< _h.hash();
+        LOG(m_logger) << "seal new block hash"<< _h.hash();
 	}
     // OPTIMISE: very inefficient to not utilise the existing OverlayDB in m_postSeal that contains all trie changes.
     return m_bq.import(&newBlock, true) == ImportResult::Success;

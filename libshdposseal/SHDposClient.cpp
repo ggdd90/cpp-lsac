@@ -189,13 +189,12 @@ bool dev::bacd::SHDposClient::verifyVarlitorPrivatrKey(Address const& _addr) con
 
 void dev::bacd::SHDposClient::rejigSealing()
 {
+    if(!m_wouldSeal) {
+        return;
+    }
     //verify block_rounds/seal_block/minner ....
     if(!isBlockSeal(utcTimeMilliSec()))
     {
-        return;
-    }
-    if(!m_wouldSeal) {
-        cwarn << "this seted would not to seal block";
         return;
     }
     if(isMajorSyncing()){
@@ -270,8 +269,7 @@ void dev::bacd::SHDposClient::rejigSealing()
 					else
 						LOG(m_logger) << "Submitting block failed...";
 				});
-				//ctrace << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
-				cwarn << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
+				ctrace << "Generating seal on " << m_sealingInfo.hash((IncludeSeal)(WithoutSeal | WithoutSign)) << " #" << m_sealingInfo.number();
 				sealEngine()->generateSeal(m_sealingInfo);
 			}
 		}
