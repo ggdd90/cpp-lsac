@@ -1,6 +1,6 @@
 #include "LevelDB.h"
 #include "Assertions.h"
-
+#include <iostream>
 namespace dev
 {
 namespace db
@@ -87,10 +87,14 @@ LevelDB::LevelDB(boost::filesystem::path const& _path, leveldb::ReadOptions _rea
     leveldb::WriteOptions _writeOptions, leveldb::Options _dbOptions)
   : m_db(nullptr), m_readOptions(std::move(_readOptions)), m_writeOptions(std::move(_writeOptions))
 {
+    std::cout << "LevelDB 11111111 \n";
     auto db = static_cast<leveldb::DB*>(nullptr);
+    std::cout << "LevelDB 22222222 \n";
     auto const status = leveldb::DB::Open(_dbOptions, _path.string(), &db);
+    std::cout << "LevelDB 33333333 \n";
+      
     checkStatus(status, _path);
-
+    std::cout << "LevelDB 4444444 \n";
     assert(db);
     m_db.reset(db);
 }
