@@ -47,6 +47,7 @@ State::State(State const &_s)
 
 OverlayDB State::openDB(fs::path const &_basePath, h256 const &_genesisHash, WithExisting _we) {
     fs::path path = _basePath.empty() ? db::databasePath() : _basePath;
+    cwarn << "State::openDB ";
 
     if (db::isDiskDatabase() && _we == WithExisting::Kill) {
         clog(VerbosityDebug, "statedb") << "Killing state database (WithExisting::Kill).";
@@ -58,10 +59,13 @@ OverlayDB State::openDB(fs::path const &_basePath, h256 const &_genesisHash, Wit
             fs::path(toHex(_genesisHash.ref().cropped(0, 4))) / fs::path(toString(c_databaseVersion));
     if (db::isDiskDatabase()) {
         fs::create_directories(path);
+        cwarn << "permissions  State::openDB ";
         DEV_IGNORE_EXCEPTIONS(fs::permissions(path, fs::owner_all));
+        cwarn << "permissions  State::openDB end";
     }
 
     try {
+        cwarn << "create  State::openDB ";
         std::unique_ptr<db::DatabaseFace> db = db::DBFactory::create(path / fs::path("state"));
         clog(VerbosityTrace, "statedb") << "Opened state DB.";
         return OverlayDB(std::move(db));

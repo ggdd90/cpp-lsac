@@ -86,7 +86,10 @@ void Client::init(p2p::Host& _extNet, fs::path const& _dbPath,
     // Cannot be opened until after blockchain is open, since BlockChain may upgrade the database.
     // TODO: consider returning the upgrade mechanism here. will delaying the opening of the blockchain database
     // until after the construction.
+    cwarn << "init state open db";
     m_stateDB = State::openDB(_dbPath, bc().genesisHash(), _forceAction);
+    
+    cwarn << "init state open openExdb";
     std::string _exdbPath = _dbPath.string() + std::string("/exdb");
     m_StateExDB = State::openExdb(fs::path(_exdbPath));
     // LAZY. TODO: move genesis state construction/commiting to stateDB openning and have this just take the root from the genesis block.
