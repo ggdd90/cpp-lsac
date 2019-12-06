@@ -1387,6 +1387,7 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
     checkConsistency();
 #endif // BRC_PARANOIA
 
+     cwarn << "_performanceLogger";
     _performanceLogger.onStageFinished("checkBest");
 
     unsigned const gasPerSecond =
