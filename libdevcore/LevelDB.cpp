@@ -123,6 +123,7 @@ bool LevelDB::exists(Slice _key) const
 
 void LevelDB::insert(Slice _key, Slice _value)
 {
+    std::cout << "level insert put 333333333333 \n";
     leveldb::Slice const key(_key.data(), _key.size());
     leveldb::Slice const value(_value.data(), _value.size());
     std::cout << "level insert put 111111111111 \n";
