@@ -1322,7 +1322,9 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
     }
 
     try {
+        cwarn << "commmit blocksWriteBatch start";
         m_blocksDB->commit(std::move(blocksWriteBatch));
+        cwarn << "commmit blocksWriteBatch end";
     }
     catch (boost::exception &ex) {
         cwarn << "Error writing to blockchain database: " << boost::diagnostic_information(ex);
@@ -1331,7 +1333,9 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
     }
 
     try {
+         cwarn << "commmit extrasWriteBatch start";
         m_extrasDB->commit(std::move(extrasWriteBatch));
+        cwarn << "commmit extrasWriteBatch end";
     }
     catch (boost::exception &ex) {
         cwarn << "Error writing to extras database: " << boost::diagnostic_information(ex);
@@ -1367,6 +1371,7 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
             m_lastBlockHash = newLastBlockHash;
             m_lastBlockNumber = newLastBlockNumber;
             try {
+                cwarn << "commmit best start";
                 m_extrasDB->insert(db::Slice("best"), db::Slice((char const *) &m_lastBlockHash, 32));
             }
             catch (boost::exception const &ex) {
@@ -1393,11 +1398,13 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
                                           {"transactions", toString(_block.transactions.size())},
                                           {"gasUsed",      toString(_block.info.gasUsed())}
                                   });
-
+    cwarn << "noteCanonChanged";
     if (!route.empty())
         noteCanonChanged();
 
+  
     if (isImportedAndBest && m_onBlockImport) {
+        cwarn << "m_onBlockImport";
         m_onBlockImport(_block.info);
     }
 
