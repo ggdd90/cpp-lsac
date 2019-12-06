@@ -1,6 +1,7 @@
 #include "LevelDB.h"
 #include "Assertions.h"
 #include <iostream>
+#include "Log.h"
 namespace dev
 {
 namespace db
@@ -123,12 +124,12 @@ bool LevelDB::exists(Slice _key) const
 
 void LevelDB::insert(Slice _key, Slice _value)
 {
-    std::cout << "level insert put 333333333333 \n";
+    cwarn << "insert .";
     leveldb::Slice const key(_key.data(), _key.size());
     leveldb::Slice const value(_value.data(), _value.size());
-    std::cout << "level insert put 111111111111 \n";
+    cwarn << "insert Put 1.";
     auto const status = m_db->Put(m_writeOptions, key, value);
-    std::cout << "level insert put 2222222222222 \n";
+    cwarn << "insert Put 2.";
     checkStatus(status);
 }
 
