@@ -1371,7 +1371,8 @@ BlockChain::insertBlockAndExtras(VerifiedBlockRef const &_block, bytesConstRef _
             m_lastBlockHash = newLastBlockHash;
             m_lastBlockNumber = newLastBlockNumber;
             try {
-                cwarn << "commmit best start";
+                bool ex = m_extrasDB == nullptr;
+                cwarn << "commmit best start " << ex;
                 m_extrasDB->insert(db::Slice("best"), db::Slice((char const *) &m_lastBlockHash, 32));
             }
             catch (boost::exception const &ex) {
