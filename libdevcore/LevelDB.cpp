@@ -55,7 +55,9 @@ private:
 
 void LevelDBWriteBatch::insert(Slice _key, Slice _value)
 {
+    std::cout << "LevelDBWriteBatch 111\n";
     m_writeBatch.Put(toLDBSlice(_key), toLDBSlice(_value));
+    std::cout << "LevelDBWriteBatch 2222\n";
 }
 
 void LevelDBWriteBatch::kill(Slice _key)
