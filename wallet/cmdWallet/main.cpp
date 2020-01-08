@@ -167,6 +167,7 @@ bool sign_trx_from_json(const bfs1::path &path, bool _is_send, std::string _ip =
     } else{
         std::cout << "send ok " << "rlp :"<< _pair.second<<std::endl;
     }
+    return true;
 }
 
 
