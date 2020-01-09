@@ -122,6 +122,13 @@ void create_address(){
 
 int main(int argc, char *argv[]){
     std:: cout << "*************************************" << std::endl;
+    std::cout << toNewAddress("0xefee5b4be9ba66b2f371d305cd4e0788fa2c7661") <<std::endl;
+
+    checkNewAddress("brcE1LTYgazkmryZPpiDErSQBnBgcTpdJL2t");
+
+
+    std:: cout << "*************************************" << std::endl;
+    std:: cout << "*************************************" << std::endl;
     auto ret__ = jsToNewAddress(Address("efee5b4be9ba66b2f371d305cd4e0788fa2c7661"));
     std::cout << ret__ << std::endl;
     std::cout << jsToAddressFromNewAddress(ret__) << std::endl;
@@ -130,32 +137,32 @@ int main(int argc, char *argv[]){
     std::cout << test_a<<std::endl;
     std::cout << jsToAddressFromNewAddress(test_a)<<std::endl;
 
-    try {
-        std::string a1= "0x4d51ba213bad0f7ed97d336b2c00dc76576aac98";
-        std::string a2= "4d51ba213bad0f7ed97d336b2c00dc76576aac98";
-        std::string a3= "brcDWqUiYGMfSwUGJ5comAWFa7WFsiKofPTS";
-
-        std::string a4=    "4d51ba213bad0f7ed97d336b2c00dcaac98";
-        std::string a41= "0x4d51ba213bad0f7ed97d336b2c00dcaac98";
-        std::string a5= "4d51ba213bad0f7ed97d336b2c00dc76576aac985";
-        std::string a6= "brcDWqUiYGMfSwUGJ5comAWFa7WFsiKofWTS";
-        std::string a7= "";
-        std::string a8= "0x";
-
-        std::cout << "****************************************************"<<std::endl;
-        std::cout << "a1:" << jsToAddressAcceptAllAddress(a1)<<std::endl;
-        std::cout << "a2:" << jsToAddressAcceptAllAddress(a2)<<std::endl;
-        std::cout << "a3:" << jsToAddressAcceptAllAddress(a3)<<std::endl;
-        //std::cout << "a41:" << jsToAddressAcceptAllAddress(a41)<<std::endl;
-        //std::cout << "a4:" << jsToAddressAcceptAllAddress(a4)<<std::endl;
-        //std::cout << "a5:" << jsToAddressAcceptAllAddress(a5)<<std::endl;
-        //std::cout << "a6:" << jsToAddressAcceptAllAddress(a6)<<std::endl;
-        std::cout << "a7:" << jsToAddressAcceptAllAddress(a7)<<std::endl;
-        //std::cout << "a8:" << jsToAddressAcceptAllAddress(a8)<<std::endl;
-
-    }catch (...){
-        std::cout << "address Error";
-    }
+//    try {
+//        std::string a1= "0x4d51ba213bad0f7ed97d336b2c00dc76576aac98";
+//        std::string a2= "4d51ba213bad0f7ed97d336b2c00dc76576aac98";
+//        std::string a3= "brcDWqUiYGMfSwUGJ5comAWFa7WFsiKofPTS";
+//
+//        std::string a4=    "4d51ba213bad0f7ed97d336b2c00dcaac98";
+//        std::string a41= "0x4d51ba213bad0f7ed97d336b2c00dcaac98";
+//        std::string a5= "4d51ba213bad0f7ed97d336b2c00dc76576aac985";
+//        std::string a6= "brcDWqUiYGMfSwUGJ5comAWFa7WFsiKofWTS";
+//        std::string a7= "";
+//        std::string a8= "0x";
+//
+//        std::cout << "****************************************************"<<std::endl;
+//        std::cout << "a1:" << jsToAddressAcceptAllAddress(a1)<<std::endl;
+//        std::cout << "a2:" << jsToAddressAcceptAllAddress(a2)<<std::endl;
+//        std::cout << "a3:" << jsToAddressAcceptAllAddress(a3)<<std::endl;
+//        //std::cout << "a41:" << jsToAddressAcceptAllAddress(a41)<<std::endl;
+//        //std::cout << "a4:" << jsToAddressAcceptAllAddress(a4)<<std::endl;
+//        //std::cout << "a5:" << jsToAddressAcceptAllAddress(a5)<<std::endl;
+//        //std::cout << "a6:" << jsToAddressAcceptAllAddress(a6)<<std::endl;
+//        std::cout << "a7:" << jsToAddressAcceptAllAddress(a7)<<std::endl;
+//        //std::cout << "a8:" << jsToAddressAcceptAllAddress(a8)<<std::endl;
+//
+//    }catch (...){
+//        std::cout << "address Error";
+//    }
 
 
 //    for(int i=0; i<10000; i++){
