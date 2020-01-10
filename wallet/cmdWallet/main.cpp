@@ -242,6 +242,17 @@ void getNewAddressFromOld(std::string const& _oldAddr){
     }
 }
 
+void checkNewAddress(std::string const& _newAddress){
+    try {
+        auto old= jsToAddressFromNewAddress(_newAddress);
+        std::cout << "old address:" << old << std::endl;
+    }
+    catch (...)
+    {
+        cwarn << "error new address";
+    }
+}
+
 int main(int argc, char *argv[]) {
 
     try {
@@ -256,6 +267,7 @@ int main(int argc, char *argv[]) {
                 ("sha3", bpo::value<std::string>(), "caculate string sha3.")
                 ("pri-tf", bpo::value<std::string>(), "private-key format.")
                 ("newaddress", bpo::value<std::string>(), "to newAddress by old Address.")
+                ("checknewaddress", bpo::value<std::string>(), "to ckeck newAddress .")
                 ;
         // addNetworkingOption("listen-ip", po::value<string>()->value_name("<ip>(:<port>)"),
         //"Listen on the given IP for incoming connections (default: 0.0.0.0)");
@@ -307,6 +319,10 @@ int main(int argc, char *argv[]) {
         if(args_map.count("newaddress")){
             auto oldAddr = args_map["newaddress"].as<std::string>();
             getNewAddressFromOld(oldAddr);
+        }
+        if(args_map.count("checknewaddress")){
+            auto newAddr = args_map["checknewaddress"].as<std::string>();
+            checkNewAddress(newAddr);
         }
 
 
