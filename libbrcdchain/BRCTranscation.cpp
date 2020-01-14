@@ -446,6 +446,10 @@ void dev::brc::BRCTranscation::verifyTransferAutoEx(const dev::Address &_from,
     for(auto const& _opIt : _op)
     {
         std::shared_ptr<transationTool::transferAutoEx_operation> _autoExop =  std::dynamic_pointer_cast<transationTool::transferAutoEx_operation>(_opIt);
+        if(!_autoExop)
+        {
+            BOOST_THROW_EXCEPTION(transferAutoExFailed() << errinfo_comment("_autoExop is null"));
+        }
         if(_autoExop->m_from != _from)
         {
             BOOST_THROW_EXCEPTION(transferAutoExFailed() << errinfo_comment(std::string("Initiating transaction address is inconsistent with operation address")));
