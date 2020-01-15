@@ -121,13 +121,18 @@ Json::Value BrcV2::brc_pendingTransactions()
         //{
         // if (pending.sender() == account)
         //{
+        //cwarn <<
         ours.push_back(pending);
         // break;
         //}
         //}
     }
-
-    return toJsonV2(ours);
+    Json::Value res(Json::arrayValue);
+    for (auto const& e: ours) {
+        auto trlp = toJsonV2(e);
+        trlp["rlp"]=toJS(e.rlp());
+    }
+    return res;
 }
 
 string BrcV2::brc_getTransactionCount(string const& _address, string const& _blockNumber)
