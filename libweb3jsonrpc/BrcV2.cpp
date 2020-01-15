@@ -115,13 +115,13 @@ Json::Value BrcV2::brc_pendingTransactions()
 {
     // Return list of transaction that being sent by local accounts
     Transactions ours;
+    cwarn << "get pending tRANSACTIONS";
     for (Transaction const& pending : client()->pending())
     {
         // for (Address const& account:m_brcAccounts.allAccounts())
         //{
         // if (pending.sender() == account)
         //{
-        //cwarn <<
         ours.push_back(pending);
         // break;
         //}
@@ -131,6 +131,7 @@ Json::Value BrcV2::brc_pendingTransactions()
     for (auto const& e: ours) {
         auto trlp = toJsonV2(e);
         trlp["rlp"]=toJS(e.rlp());
+        res.append(trlp);
     }
     return res;
 }
